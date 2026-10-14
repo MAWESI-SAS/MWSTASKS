@@ -1,0 +1,419 @@
+# Copyright (c) 2026-present MAWESI S.A.S.
+# SPDX-License-Identifier: AGPL-3.0-only
+"""Migra un espacio de ClickUp a un proyecto de MWSTASKS.
+
+- ClickUp: SOLO LECTURA (solo pedidos GET).
+- Idempotente: todo lo creado lleva external_source="clickup" + external_id. Si se corre de nuevo, salta lo que ya existe.
+- Las personas se cruzan por email. Si alguien no tiene cuenta, la tarea queda sin esa persona y se avisa.
+
+Uso:
+  CLICKUP_TOKEN=... MWSTASKS_TOKEN=... uv run --with-requirements tools/migrate_clickup/requirements.txt \
+    python -m tools.migrate_clickup.migrate --space 90144438515 --folders "Product,Sprints,Documentation" \
+    --url http://localhost:8088 --workspace mawesi --project-name "Contractor Management" --identifier CM
+"""
+import argparse
+import collections
+import json
+import os
+import sys
+import time
+
+from tools.migrate_clickup import mapping as M
+from tools.migrate_clickup.clickup import ClickUp
+from tools.migrate_clickup.plane import Plane, PlaneError
+
+ADMIN, MEMBER = 20, 15
+
+
+class Migration:
+    def __init__(self, cu: ClickUp, pl: Plane, args):
+        self.cu, self.pl, self.a = cu, pl, args
+        self.stats = collections.Counter()
+        self.warnings = collections.Counter()
+        self.samples = collections.defaultdict(list)
+
+    def warn(self, kind, detail=""):
+        self.warnings[kind] += 1
+        if len(self.samples[kind]) < 3 and detail:
+            self.samples[kind].append(detail)
+
+    def log(self, msg):
+        print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
+
+    # ---------- 1. leer ClickUp ----------
+    def read_clickup(self):
+        wanted = {f.strip() for f in self.a.folders.split(",") if f.strip()}
+        self.lists, self.tasks, self.fields = [], {}, {}
+        for f in self.cu.folders(self.a.space):
+            if wanted and f["name"] not in wanted:
+                continue
+            for lst in f["lists"]:
+                lst = {**lst, "folder": f["name"]}
+                detail = self.cu.list(lst["id"])
+                lst["statuses"] = detail.get("statuses", [])
+                self.lists.append(lst)
+                for fd in self.cu.custom_fields(lst["id"]):
+                    self.fields.setdefault(fd["id"], fd)
+                for t in self.cu.tasks(lst["id"]):
+                    self.tasks[t["id"]] = t
+        self.log(f"ClickUp: {len(self.lists)} listas, {len(self.tasks)} tareas, {len(self.fields)} campos")
+
+    # ---------- 2. preparar MWSTASKS ----------
+    def people(self):
+        members = self.pl.all(self.pl.ws("members/"))
+        self.user_by_email = {(m.get("email") or "").lower(): m["id"] for m in members if m.get("email")}
+        self.cu_user = {}  # id ClickUp -> id MWSTASKS
+        for t in self.tasks.values():
+            for u in t.get("assignees", []) + [t.get("creator") or {}]:
+                if u.get("id") and u["id"] not in self.cu_user:
+                    self.cu_user[u["id"]] = self.user_by_email.get((u.get("email") or "").lower())
+        missing = [k for k, v in self.cu_user.items() if v is None]
+        if missing:
+            self.warn("personas sin cuenta en MWSTASKS", ", ".join(map(str, missing)))
+
+    def project(self):
+        found = [p for p in self.pl.all(self.pl.ws("projects/")) if p["identifier"] == self.a.identifier]
+        if found:
+            self.pid = found[0]["id"]
+            self.log(f"Proyecto existente {self.a.identifier} ({self.pid})")
+        else:
+            p = self.pl.write("POST", self.pl.ws("projects/"), {
+                "name": self.a.project_name, "identifier": self.a.identifier,
+                "description": f"Migrado de ClickUp (espacio {self.a.space}).",
+                "external_source": M.SOURCE, "external_id": str(self.a.space), "timezone": "America/Bogota",
+                "cycle_view": True, "module_view": True,
+            })
+            self.pid = p["id"]
+            self.stats["proyecto creado"] += 1
+            self.log(f"Proyecto creado {self.a.identifier} ({self.pid})")
+        current = {m["id"] for m in self.pl.all(self.pl.proj(self.pid, "members/"))}
+        for uid in set(self.user_by_email.values()) - current:
+            try:
+                self.pl.write("POST", self.pl.proj(self.pid, "project-members/"), {"member": uid, "role": MEMBER})
+                self.stats["miembros agregados"] += 1
+            except PlaneError as e:
+                self.warn("miembro no agregado", str(e))
+
+    def _by_external(self, path):
+        return {x["external_id"]: x["id"] for x in self.pl.all(path) if x.get("external_source") == M.SOURCE and x.get("external_id")}
+
+    def states(self):
+        existing = self._by_external(self.pl.proj(self.pid, "states/"))
+        self.state_by_name = {}
+        seen = {}
+        for lst in self.lists:
+            for s in lst["statuses"]:
+                seen.setdefault(s["status"].lower(), s)
+        for i, (key, s) in enumerate(sorted(seen.items(), key=lambda kv: kv[1].get("orderindex", 0))):
+            ext = f"status:{key}"
+            if ext not in existing:
+                body = {"name": s["status"].title()[:255], "color": s.get("color") or "#64748b",
+                        "group": M.state_group(s["type"], s["status"]), "sequence": (i + 1) * 1000,
+                        "external_source": M.SOURCE, "external_id": ext}
+                try:
+                    existing[ext] = self.pl.write("POST", self.pl.proj(self.pid, "states/"), body)["id"]
+                    self.stats["estados"] += 1
+                except PlaneError as e:
+                    if e.code != 409:
+                        raise
+                    # Mismo nombre que un estado de Plane ("Done", "Cancelled"…): se reusa ese.
+                    existing[ext] = e.json().get("id")
+            self.state_by_name[key] = existing[ext]
+
+    def labels(self):
+        existing = self._by_external(self.pl.proj(self.pid, "labels/"))
+        tags = {}
+        for t in self.tasks.values():
+            for tag in t.get("tags", []):
+                tags.setdefault(tag["name"].lower(), tag)
+        self.label_by_name = {}
+        for key, tag in tags.items():
+            ext = f"tag:{key}"
+            if ext not in existing:
+                existing[ext] = self.pl.write("POST", self.pl.proj(self.pid, "labels/"), {
+                    "name": tag["name"][:255], "color": tag.get("tag_bg") or "#64748b",
+                    "external_source": M.SOURCE, "external_id": ext})["id"]
+                self.stats["etiquetas"] += 1
+            self.label_by_name[key] = existing[ext]
+
+    def cycles_and_modules(self):
+        cycles = {c["external_id"]: c for c in self.pl.all(self.pl.proj(self.pid, "cycles/"))
+                  if c.get("external_source") == M.SOURCE and c.get("external_id")}
+        modules = self._by_external(self.pl.proj(self.pid, "modules/"))
+        self.cycle_by_list, self.module_by_list, self.cycle_info = {}, {}, {}
+        names = collections.Counter(l["name"] for l in self.lists)
+        for lst in self.lists:
+            ext = f"list:{lst['id']}"
+            if M.is_sprint(lst["name"]):
+                # Plane no deja agregar tareas (ni editar) un ciclo con fecha de fin pasada:
+                # se crea SIN fechas y las fechas se ponen en grouping(), después de cargar las tareas.
+                if ext not in cycles:
+                    cycles[ext] = self.pl.write("POST", self.pl.proj(self.pid, "cycles/"), {
+                        "name": lst["name"][:255], "external_source": M.SOURCE, "external_id": ext,
+                        "owned_by": self.me})
+                    self.stats["ciclos"] += 1
+                c = cycles[ext]
+                self.cycle_by_list[lst["id"]] = c["id"]
+                self.cycle_info[c["id"]] = {"has_dates": bool(c.get("end_date")),
+                                            "start": M.ms_to_date(lst.get("start_date")),
+                                            "end": M.ms_to_date(lst.get("due_date"))}
+            else:
+                if ext not in modules:
+                    name = lst["name"] if names[lst["name"]] == 1 else f"{lst['folder']} / {lst['name']}"
+                    modules[ext] = self.pl.write("POST", self.pl.proj(self.pid, "modules/"), {
+                        "name": name[:255], "external_source": M.SOURCE, "external_id": ext})["id"]
+                    self.stats["módulos"] += 1
+                self.module_by_list[lst["id"]] = modules[ext]
+
+    def properties(self):
+        existing = {p["external_id"]: p for p in self.pl.get(self.pl.mawesi(self.pid, "properties/"))
+                    if p.get("external_source") == M.SOURCE}
+        self.prop_by_field, self.option_ids = {}, {}
+        fields = sorted(self.fields.values(), key=lambda f: f["name"].lower())
+        if self.a.estimate:
+            fields.append({"id": "time_estimate", "name": "Estimado (h)", "type": "number"})
+        for i, f in enumerate(fields):
+            kind = M.FIELD_TYPES.get(f["type"], "text")
+            prop = existing.get(f["id"])
+            if prop is None:
+                body = {"name": f["name"][:120], "type": kind, "sort_order": (i + 1) * 1000,
+                        "external_source": M.SOURCE, "external_id": f["id"],
+                        "options": M.option_list(f) if kind in ("select", "multi_select") else []}
+                try:
+                    prop = self.pl.write("POST", self.pl.mawesi(self.pid, "properties/"), body)
+                    self.stats["campos"] += 1
+                except PlaneError as e:
+                    self.warn("campo no creado", f"{f['name']}: {e}")
+                    continue
+            self.prop_by_field[f["id"]] = prop["id"]
+            for o in prop.get("options", []):
+                if o.get("external_id"):
+                    self.option_ids[o["external_id"]] = o["id"]
+
+    # ---------- 3. tareas ----------
+    def home_cycle_and_module(self, t):
+        lid = t["list"]["id"]
+        cycle = self.cycle_by_list.get(lid)
+        if cycle is None:
+            for loc in t.get("locations", []):
+                cycle = cycle or self.cycle_by_list.get(loc.get("id"))
+        return cycle, self.module_by_list.get(lid)
+
+    def issues(self):
+        existing, self.parent_of = {}, {}
+        for i in self.pl.all(self.pl.proj(self.pid, "issues/")):
+            if i.get("external_source") == M.SOURCE:
+                existing[i["external_id"]] = i["id"]
+                self.parent_of[i["id"]] = i.get("parent")
+        self.issue_by_task = {}
+        self.new_issues = set()
+        ordered = sorted(self.tasks.values(), key=lambda t: int(t.get("date_created") or 0))
+        for n, t in enumerate(ordered, 1):
+            if t["id"] in existing:
+                self.issue_by_task[t["id"]] = existing[t["id"]]
+                continue
+            assignees = [self.cu_user.get(a["id"]) for a in t.get("assignees", [])]
+            start, due = M.ms_to_date(t.get("start_date")), M.ms_to_date(t.get("due_date"))
+            if start and due and start > due:
+                self.warn("fecha inicio > fecha fin (se descarta el inicio)", t["id"])
+                start = None
+            body = {
+                "name": (t["name"] or "(sin título)")[:255],
+                "description_html": M.description_html(t),
+                "state": self.state_by_name.get(t["status"]["status"].lower()),
+                "priority": M.priority(t),
+                "assignees": [a for a in assignees if a],
+                "labels": [self.label_by_name[tag["name"].lower()] for tag in t.get("tags", [])],
+                "start_date": start, "target_date": due,
+                "external_source": M.SOURCE, "external_id": t["id"],
+                "created_at": M.ms_to_iso(t.get("date_created")),
+                "created_by": self.cu_user.get((t.get("creator") or {}).get("id")) or self.me,
+            }
+            if len(assignees) != len(body["assignees"]):
+                self.warn("asignado sin cuenta en MWSTASKS", t["id"])
+            try:
+                issue = self.pl.write("POST", self.pl.proj(self.pid, "issues/"), body)
+                self.issue_by_task[t["id"]] = issue["id"]
+                self.new_issues.add(t["id"])
+                self.stats["tareas"] += 1
+            except PlaneError as e:
+                if e.code == 409 and e.json().get("id"):
+                    self.issue_by_task[t["id"]] = e.json()["id"]
+                else:
+                    self.warn("tarea no creada", f"{t['id']}: {e}")
+            if n % 200 == 0:
+                self.log(f"  tareas {n}/{len(ordered)}")
+        # Subtareas: el padre se pone después, cuando ya existen todas. Revisa todas (no solo las nuevas)
+        # para completar una corrida anterior que se cortó.
+        for t in ordered:
+            if t.get("parent") and t["id"] in self.issue_by_task:
+                parent = self.issue_by_task.get(t["parent"])
+                if parent and self.parent_of.get(self.issue_by_task[t["id"]]) == parent:
+                    continue
+                if parent:
+                    self.pl.write("PATCH", self.pl.proj(self.pid, f"issues/{self.issue_by_task[t['id']]}/"), {"parent": parent})
+                    self.stats["subtareas enlazadas"] += 1
+                else:
+                    self.warn("padre fuera del alcance migrado", t["id"])
+
+    def _add_missing(self, kind, container_id, wanted):
+        path = self.pl.proj(self.pid, f"{kind}s/{container_id}/{kind}-issues/")
+        have = {x.get("id") or x.get("issue") for x in self.pl.all(path)}
+        missing = [i for i in wanted if i not in have]
+        for k in range(0, len(missing), 100):
+            self.pl.write("POST", path, {"issues": missing[k:k + 100]})
+        return len(missing)
+
+    def grouping(self):
+        """Ciclos y módulos. Revisa todas las tareas y agrega solo las que faltan (idempotente)."""
+        by_cycle, by_module = collections.defaultdict(list), collections.defaultdict(list)
+        for tid, iid in self.issue_by_task.items():
+            cycle, module = self.home_cycle_and_module(self.tasks[tid])
+            if cycle:
+                by_cycle[cycle].append(iid)
+            if module:
+                by_module[module].append(iid)
+        for cid, info in self.cycle_info.items():
+            ids = by_cycle.get(cid, [])
+            if ids and info["has_dates"] and info["end"] and info["end"] < M.today():
+                self.warn("ciclo ya cerrado: no se le pueden agregar tareas", cid)
+            elif ids:
+                self.stats["tareas en ciclos"] += self._add_missing("cycle", cid, ids)
+            if not info["has_dates"] and info["start"] and info["end"]:
+                self.pl.write("PATCH", self.pl.proj(self.pid, f"cycles/{cid}/"),
+                              {"start_date": info["start"], "end_date": info["end"]})
+                self.stats["ciclos con fechas"] += 1
+        for mid, ids in by_module.items():
+            self.stats["tareas en módulos"] += self._add_missing("module", mid, ids)
+
+    def values(self):
+        # Para todas las tareas: MWSTASKS ignora los valores que no cambian, así que repetir es seguro.
+        for tid in self.issue_by_task:
+            t, values = self.tasks[tid], {}
+            for cf in t.get("custom_fields", []):
+                pid = self.prop_by_field.get(cf["id"])
+                if not pid:
+                    continue
+                v, warn = M.field_value(cf, cf.get("value"), self.option_ids, self.user_by_email)
+                if warn:
+                    self.warn(f"valor de campo: {warn.split(':')[0]}", f"{tid} {cf['name']}: {warn}")
+                if v is not None:
+                    values[pid] = v
+            if self.a.estimate and "time_estimate" in self.prop_by_field and t.get("time_estimate") is not None:
+                hours = M.estimate_hours(t["time_estimate"])
+                if hours is None and t["time_estimate"]:
+                    self.warn("estimado menor a 1 minuto en ClickUp (se deja vacío)", tid)
+                values[self.prop_by_field["time_estimate"]] = hours  # None borra un valor viejo
+            if not values:
+                continue
+            path = self.pl.mawesi(self.pid, f"issues/{self.issue_by_task[tid]}/property-values/")
+            try:
+                self.pl.write("PATCH", path, {"values": values})
+                self.stats["tareas con campos revisadas"] += 1
+            except PlaneError:
+                for k, v in values.items():  # todo-o-nada falló: cargar de a uno para salvar los válidos
+                    try:
+                        self.pl.write("PATCH", path, {"values": {k: v}})
+                    except PlaneError as e:
+                        self.warn("valor rechazado", f"{tid}: {e}")
+
+    def comments(self):
+        names = {}
+        for n, tid in enumerate(sorted(self.issue_by_task), 1):
+            iid = self.issue_by_task[tid]
+            for c in self.cu.comments(tid):
+                for item in [c] + (self.cu.get(f"/comment/{c['id']}/reply").get("comments", []) if int(c.get("reply_count") or 0) else []):
+                    user = item.get("user") or {}
+                    names[user.get("id")] = user.get("username") or user.get("email") or "?"
+                    body = {"comment_html": M.comment_html(item, names[user.get("id")]),
+                            "external_source": M.SOURCE, "external_id": str(item["id"]),
+                            "created_at": M.ms_to_iso(item.get("date")),
+                            "created_by": self.user_by_email.get((user.get("email") or "").lower()) or self.me}
+                    try:
+                        self.pl.write("POST", self.pl.proj(self.pid, f"issues/{iid}/comments/"), body)
+                        self.stats["comentarios"] += 1
+                    except PlaneError as e:
+                        if e.code != 409:
+                            self.warn("comentario no creado", f"{tid}: {e}")
+            if n % 250 == 0:
+                self.log(f"  comentarios: {n}/{len(self.issue_by_task)} tareas revisadas")
+
+    def worklogs(self):
+        team = self.a.team or self.cu.get("/team")["teams"][0]["id"]
+        cu_ids = [m["user"]["id"] for m in self.cu.get("/team")["teams"][0]["members"]]
+        start = int(time.mktime(time.strptime(self.a.time_from, "%Y-%m-%d")) * 1000)
+        end = int(time.time() * 1000)
+        entries = self.cu.get(f"/team/{team}/time_entries", start_date=start, end_date=end, space_id=self.a.space,
+                              assignee=",".join(map(str, cu_ids)), include_task_tags="false").get("data", [])
+        by_issue = collections.defaultdict(list)
+        for e in entries:
+            tid = (e.get("task") or {}).get("id")
+            if tid in self.issue_by_task:
+                by_issue[self.issue_by_task[tid]].append(e)
+            else:
+                self.warn("hora fuera del alcance migrado", e.get("id"))
+        self.stats["horas leídas"] = len(entries)
+        for iid, rows in by_issue.items():
+            done = {w["description"].split("]")[0] + "]" for w in self.pl.get(self.pl.mawesi(self.pid, f"issues/{iid}/worklogs/")) if (w.get("description") or "").startswith("[clickup:")}
+            for e in rows:
+                email = ((e.get("user") or {}).get("email") or "").lower()
+                member = self.user_by_email.get(email)
+                minutes = max(1, round(int(e["duration"]) / 60000))
+                for k, chunk in enumerate(M.split_minutes(minutes)):
+                    tag = f"[clickup:{e['id']}{'#' + str(k) if k else ''}]"
+                    if tag in done:
+                        continue
+                    note = (e.get("description") or "").strip()
+                    if not member:
+                        note = f"Registrado por {email or '?'} en ClickUp. {note}"
+                    body = {"duration_minutes": chunk, "date": M.ms_to_date(e["start"]),
+                            "description": f"{tag} {note}".strip()[:2000]}
+                    if member:
+                        body["member"] = member
+                    try:
+                        self.pl.write("POST", self.pl.mawesi(self.pid, f"issues/{iid}/worklogs/"), body)
+                        self.stats["horas migradas"] += 1
+                        self.stats["minutos migrados"] += chunk
+                    except PlaneError as err:
+                        self.warn("hora no migrada", f"{e['id']}: {err}")
+
+    def run(self):
+        self.read_clickup()
+        self.me = self.pl.get("/api/v1/users/me/")["id"]
+        self.people()
+        self.project()
+        self.states(); self.labels(); self.cycles_and_modules(); self.properties()
+        self.log("Estructura lista. Creando tareas…")
+        self.issues(); self.grouping()
+        self.log("Cargando valores de campos…"); self.values()
+        if not self.a.skip_comments:
+            self.log("Copiando comentarios…"); self.comments()
+        if not self.a.skip_time:
+            self.log("Copiando horas…"); self.worklogs()
+        report = {"proyecto": self.pid, "creado": dict(self.stats), "avisos": dict(self.warnings),
+                  "ejemplos": dict(self.samples), "llamadas": {"clickup": self.cu.calls, "mwstasks": self.pl.calls}}
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return report
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--space", required=True)
+    ap.add_argument("--folders", default="")
+    ap.add_argument("--team", default="")
+    ap.add_argument("--url", required=True)
+    ap.add_argument("--workspace", required=True)
+    ap.add_argument("--project-name", required=True)
+    ap.add_argument("--identifier", required=True)
+    ap.add_argument("--time-from", default="2024-01-01")
+    ap.add_argument("--estimate", action="store_true", help="copiar el tiempo estimado como campo 'Estimado (h)'")
+    ap.add_argument("--skip-comments", action="store_true")
+    ap.add_argument("--skip-time", action="store_true")
+    a = ap.parse_args()
+    cu = ClickUp(os.environ["CLICKUP_TOKEN"])
+    pl = Plane(a.url, os.environ["MWSTASKS_TOKEN"], a.workspace)
+    Migration(cu, pl, a).run()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

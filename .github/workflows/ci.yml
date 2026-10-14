@@ -55,6 +55,19 @@ jobs:
             -e REDIS_URL=redis://localhost:6379/ -e AMQP_URL=amqp://plane:plane@localhost:5672/plane \
             plane-backend-mawesi-test:dev pytest -c /code/plane_mawesi/pytest.ini /code/plane_mawesi/tests -p no:warnings
 
+  migrator:
+    name: migrador ClickUp (reglas de conversión)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: pytest
+        run: |
+          pip install -r tools/migrate_clickup/requirements.txt pytest
+          python -m pytest -q tools/migrate_clickup/tests
+
   web:
     name: web (armado + build + tsc)
     runs-on: ubuntu-latest
