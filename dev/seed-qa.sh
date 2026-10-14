@@ -18,6 +18,8 @@ u, _ = User.objects.get_or_create(email=email, defaults={"username": email.split
 u.set_password(pwd); u.is_active = True; u.is_password_autoset = False; u.is_email_verified = True; u.save()
 p, _ = Profile.objects.get_or_create(user=u)
 p.is_onboarded = True
+# Sin esto la home del workspace abre el tour de bienvenida (modal a pantalla completa) y tapa las pruebas.
+p.is_tour_completed = True
 p.onboarding_step = {"profile_complete": True, "workspace_create": True, "workspace_invite": True, "workspace_join": True}
 p.save()
 i = Instance.objects.first()
