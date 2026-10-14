@@ -17,4 +17,6 @@ export const REPLACEMENTS: Record<string, string> = {
   "components/workspace/edition-badge": "overrides/workspace/edition-badge.tsx",
   "components/auth-screens/footer": "overrides/auth/footer.tsx",
   "components/core/page-title": "overrides/core/page-title.tsx",
+  // Login con Microsoft (punto de extensión de Plane: hooks/oauth/extended)
+  "hooks/oauth/extended": "overrides/auth/oauth-extended.tsx",
 };

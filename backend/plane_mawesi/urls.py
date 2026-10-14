@@ -5,6 +5,7 @@ from django.urls import path
 
 from plane.urls import urlpatterns as plane_urlpatterns
 
+from plane_mawesi.auth import views as auth
 from plane_mawesi.views import properties as pr
 from plane_mawesi.views import worklogs as w
 
@@ -34,6 +35,10 @@ def _property_routes(prefix: str, list_view, detail_view, values_view, batch_vie
 
 urlpatterns = [
     path("api/mawesi/ping/", w.PingEndpoint.as_view(), name="mawesi-ping"),
+    # Login con Microsoft (Plane CE no lo trae). Mismo prefijo /auth/ que los logins de Plane.
+    path("auth/microsoft/", auth.MicrosoftInitiateEndpoint.as_view(), name="mawesi-microsoft-initiate"),
+    path("auth/microsoft/callback/", auth.MicrosoftCallbackEndpoint.as_view(), name="mawesi-microsoft-callback"),
+    path("api/mawesi/auth-providers/", auth.AuthProvidersEndpoint.as_view(), name="mawesi-auth-providers"),
     *_routes("api/mawesi/", w.IssueWorklogsEndpoint, w.WorklogDetailEndpoint, w.WorklogTotalsEndpoint, w.WorklogReportEndpoint, ""),
     *_routes("api/v1/mawesi/", w.IssueWorklogsKeyEndpoint, w.WorklogDetailKeyEndpoint, w.WorklogTotalsKeyEndpoint, w.WorklogReportKeyEndpoint, "-key"),
     *_property_routes("api/mawesi/", pr.PropertiesEndpoint, pr.PropertyDetailEndpoint, pr.IssueValuesEndpoint, pr.ValuesBatchEndpoint, ""),

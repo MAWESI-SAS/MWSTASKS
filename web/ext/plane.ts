@@ -20,8 +20,9 @@ export {
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
 } from "@plane/constants";
 export { EUserProjectRoles, EUserWorkspaceRoles } from "@plane/types";
-export type { TProjectSettingsItem } from "@plane/types";
+export type { TOAuthConfigs, TProjectSettingsItem } from "@plane/types";
 export { APIService } from "@/services/api.service";
+export { useSearchParams } from "next/navigation";
 export { useUser, useUserPermissions } from "@/hooks/store/user";
 export { useMember } from "@/hooks/store/use-member";
 export { useIssueDetail } from "@/hooks/store/use-issue-detail";

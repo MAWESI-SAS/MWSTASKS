@@ -26,6 +26,7 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
 | `components/issues/issue-detail/issue-activity/activity/activity-list` | `overrides/issues/activity-list.tsx`: pinta `field="worklog"`; el resto lo pinta Plane (que devuelve `null` para campos desconocidos) |
 | `components/workspace/sidebar/helper` | `overrides/workspace/sidebar-helper.tsx`: ícono de reloj para el ítem `mawesi_worklogs`; re-exporta todo lo demás |
 | `components/navigation/top-navigation-root` | `overrides/navigation/top-navigation-root.tsx`: envuelve la barra superior en `.mawesi-topbar` (`display: contents`, sin cambiar el layout) para pintarla en blanco sobre el gradiente |
+| `hooks/oauth/extended` | `overrides/auth/oauth-extended.tsx`: punto de extensión de Plane para logins extra (en CE devuelve vacío). Suma "Continue with Microsoft" si `GET /api/mawesi/auth-providers/` dice que está configurado |
 
 ## Rutas y menú
 
@@ -64,6 +65,12 @@ Cero archivos de Plane editados. Se activa con `DJANGO_SETTINGS_MODULE=plane_maw
 Internos de Plane que importamos (cubiertos por `tests/test_contrato_plane.py`): `plane.settings.production` / `.test`,
 `plane.urls.urlpatterns`, `plane.app.views.base.BaseAPIView`, `plane.api.views.base.BaseAPIView` (+ `APIKeyAuthentication`),
 `plane.app.permissions.ROLE`, `plane.db.models.project.ProjectBaseModel`, `Issue.issue_objects`, campos de `IssueActivity`.
+
+Login con Microsoft (`plane_mawesi/auth/`): `MicrosoftOAuthProvider` hereda `plane.authentication.adapter.oauth.OauthAdapter`
+(mismo contrato que `GoogleOAuthProvider`) y las vistas copian el flujo de `GoogleOauthInitiateEndpoint`/`GoogleCallbackEndpoint`
+(`base_host`, `user_login`, `get_redirection_path`, `post_user_auth_workflow`, `get_safe_redirect_url`). Rutas propias
+`/auth/microsoft/` y `/auth/microsoft/callback/`, antes de las de Plane. Config solo por env (`MICROSOFT_*`), sin UI en god-mode.
+`Account.provider="microsoft"` no está en `PROVIDER_CHOICES` de Plane (Django no lo valida en DB). Contrato: `test_molde_oauth_para_microsoft`.
 
 Historial: escribimos filas `IssueActivity(field="worklog")` directamente. Los guests de un proyecto las verían en el
 historial core (hoy no hay guests).

@@ -42,3 +42,20 @@ def test_celery_lee_settings_al_importar():
     """Motivo del cambio temporal de DJANGO_SETTINGS_MODULE en settings.py: si Plane deja de hacerlo, se puede quitar."""
     import plane.celery as c
     assert "redis_instance()" in inspect.getsource(c)
+
+
+@pytest.mark.contract
+def test_molde_oauth_para_microsoft():
+    """auth/microsoft.py hereda OauthAdapter y reusa el flujo de login de Plane."""
+    from plane.authentication.adapter.error import AUTHENTICATION_ERROR_CODES, AuthenticationException  # noqa: F401
+    from plane.authentication.adapter.oauth import OauthAdapter
+    from plane.authentication.utils.host import base_host  # noqa: F401
+    from plane.authentication.utils.login import user_login  # noqa: F401
+    from plane.authentication.utils.redirection_path import get_redirection_path  # noqa: F401
+    from plane.authentication.utils.user_auth_workflow import post_user_auth_workflow  # noqa: F401
+    from plane.utils.path_validator import get_safe_redirect_url  # noqa: F401
+    params = list(inspect.signature(OauthAdapter.__init__).parameters)
+    assert params[:9] == ["self", "request", "provider", "client_id", "scope", "redirect_uri", "auth_url",
+                          "token_url", "userinfo_url"]
+    assert {"get_user_token", "get_user_response", "create_update_account", "complete_login_or_signup"} <= set(dir(OauthAdapter))
+    assert {"AUTHENTICATION_FAILED", "OAUTH_NOT_CONFIGURED", "INSTANCE_NOT_CONFIGURED"} <= set(AUTHENTICATION_ERROR_CODES)
