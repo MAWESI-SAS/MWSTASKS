@@ -1,0 +1,185 @@
+# MWSTASKS by MAWESI — CI: pruebas del backend, build de la web sobre Plane@UPSTREAM_VERSION, E2E en navegador
+# contra el stack completo y publicación de imágenes en GHCR (solo en main).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io/mawesi-sas
+
+jobs:
+  backend:
+    name: backend (pytest + migraciones)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      db:
+        image: postgres:15.7-alpine
+        env: { POSTGRES_USER: plane, POSTGRES_PASSWORD: plane, POSTGRES_DB: plane }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U plane" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: valkey/valkey:7.2.11-alpine
+        ports: ["6379:6379"]
+      mq:
+        image: rabbitmq:3.13.6-management-alpine
+        env: { RABBITMQ_DEFAULT_USER: plane, RABBITMQ_DEFAULT_PASS: plane, RABBITMQ_DEFAULT_VHOST: plane }
+        ports: ["5672:5672"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Versión de Plane
+        run: echo "UPSTREAM=$(cat UPSTREAM_VERSION)" >> "$GITHUB_ENV"
+      - name: Imagen backend (sobre la oficial) e imagen de test
+        run: |
+          docker build -t plane-backend-mawesi:dev --build-arg UPSTREAM_VERSION="$UPSTREAM" backend
+          docker build -t plane-backend-mawesi-test:dev -f backend/Dockerfile.test backend
+      - name: Migraciones al día (makemigrations --check)
+        run: |
+          docker run --rm --network host -e SECRET_KEY=ci -e DATABASE_URL=postgresql://plane:plane@localhost/plane \
+            -e REDIS_URL=redis://localhost:6379/ -e AMQP_URL=amqp://plane:plane@localhost:5672/plane \
+            plane-backend-mawesi:dev python manage.py makemigrations mawesi --check --dry-run
+      - name: pytest (horas, campos, contratos con Plane)
+        run: |
+          docker run --rm --network host -e SECRET_KEY=ci -e DATABASE_URL=postgresql://plane:plane@localhost/plane \
+            -e REDIS_URL=redis://localhost:6379/ -e AMQP_URL=amqp://plane:plane@localhost:5672/plane \
+            plane-backend-mawesi-test:dev pytest -c /code/plane_mawesi/pytest.ini /code/plane_mawesi/tests -p no:warnings
+
+  web:
+    name: web (armado + build + tsc)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Versión de Plane
+        run: echo "UPSTREAM=$(cat UPSTREAM_VERSION)" >> "$GITHUB_ENV"
+      - name: Plane en esa versión
+        uses: actions/checkout@v4
+        with:
+          repository: makeplane/plane
+          ref: ${{ env.UPSTREAM }}
+          path: plane
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Dependencias de Plane
+        working-directory: plane
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm exec turbo run build --filter=web^...
+      - name: Pillow (íconos de marca)
+        run: python3 -m pip install --quiet pillow
+      - name: Armar overlay MWSTASKS y compilar (incluye tsc)
+        run: |
+          scripts/assemble-web.sh plane
+          scripts/build-web-client.sh plane
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-client
+          path: plane/apps/web/build/client
+          retention-days: 7
+
+  e2e:
+    name: e2e (stack completo + Playwright)
+    needs: [backend, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Versión de Plane
+        run: echo "UPSTREAM=$(cat UPSTREAM_VERSION)" >> "$GITHUB_ENV"
+      - name: Compose oficial de Plane
+        uses: actions/checkout@v4
+        with:
+          repository: makeplane/plane
+          ref: ${{ env.UPSTREAM }}
+          path: plane
+          sparse-checkout: deployments/cli/community
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-client
+          path: web-client
+      - name: Imágenes MWSTASKS
+        run: |
+          docker build -t plane-backend-mawesi:dev --build-arg UPSTREAM_VERSION="$UPSTREAM" backend
+          docker build -t plane-web-mawesi:dev --build-arg UPSTREAM_VERSION="$UPSTREAM" -f web/Dockerfile web-client
+      - name: Levantar stack
+        env:
+          APP_RELEASE: ${{ env.UPSTREAM }}
+        run: |
+          docker compose -p plane-mawesi-full -f plane/deployments/cli/community/docker-compose.yml \
+            -f dev/compose.full.override.yaml --env-file dev/full.env up -d
+          for i in $(seq 1 90); do
+            [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8088/api/instances/)" = 200 ] && break
+            sleep 4
+          done
+          curl -sf http://localhost:8088/api/mawesi/ping/
+          dev/seed-qa.sh plane-mawesi-full
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Playwright
+        run: |
+          python -m pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+      - name: E2E (inicio, horas, reporte, campos, tema)
+        run: RUN=ci${{ github.run_number }} web/e2e/run-all.sh "$RUNNER_TEMP/capturas"
+      - name: Logs del stack si falla
+        if: failure()
+        run: docker compose -p plane-mawesi-full logs --tail 200 api web proxy migrator > "$RUNNER_TEMP/capturas/stack.log" 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-capturas
+          path: ${{ runner.temp }}/capturas
+          retention-days: 7
+
+  publish:
+    name: publicar imágenes (GHCR)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Versión y etiqueta
+        run: |
+          echo "UPSTREAM=$(cat UPSTREAM_VERSION)" >> "$GITHUB_ENV"
+          echo "TAG=$(cat UPSTREAM_VERSION)-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-client
+          path: web-client
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Construir y subir
+        run: |
+          docker build -t "$REGISTRY/mwstasks-backend:$TAG" --build-arg UPSTREAM_VERSION="$UPSTREAM" \
+            --label org.opencontainers.image.source=https://github.com/MAWESI-SAS/MWSTASKS backend
+          docker build -t "$REGISTRY/mwstasks-web:$TAG" --build-arg UPSTREAM_VERSION="$UPSTREAM" \
+            --label org.opencontainers.image.source=https://github.com/MAWESI-SAS/MWSTASKS -f web/Dockerfile web-client
+          for img in mwstasks-backend mwstasks-web; do
+            docker tag "$REGISTRY/$img:$TAG" "$REGISTRY/$img:$UPSTREAM-main"
+            docker push "$REGISTRY/$img:$TAG"
+            docker push "$REGISTRY/$img:$UPSTREAM-main"
+          done
+          echo "### Imágenes publicadas" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$REGISTRY/mwstasks-backend:$TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`$REGISTRY/mwstasks-web:$TAG\`" >> "$GITHUB_STEP_SUMMARY"

@@ -4,6 +4,7 @@
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 OUT="${1:?carpeta de capturas}"
+mkdir -p "$OUT"
 export RUN="${RUN:-$(date +%s)}"
 for t in smoke worklog report fields theme; do
   echo "== $t (RUN=$RUN)"

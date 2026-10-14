@@ -1,0 +1,85 @@
+# MWSTASKS by MAWESI — canary: arma el overlay contra la PRÓXIMA versión de Plane (último RC y la rama preview)
+# para enterarnos antes de que salga. No publica nada. Un fallo acá es un aviso, no un bloqueo.
+name: canary
+
+on:
+  schedule:
+    - cron: "0 11 * * 1" # lunes 06:00 Bogotá
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  target:
+    runs-on: ubuntu-latest
+    outputs:
+      rc: ${{ steps.rc.outputs.rc }}
+    steps:
+      - id: rc
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rc=$(gh api "repos/makeplane/plane/tags?per_page=100" --jq '[.[].name | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+-rc[0-9]+$"))] | first')
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          echo "Último RC de Plane: $rc" >> "$GITHUB_STEP_SUMMARY"
+
+  web:
+    needs: target
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: ["${{ needs.target.outputs.rc }}", "preview"]
+    # preview tiene cambios grandes de UI todavía sin versión (ver FORK.md "Canary contra preview"): no bloquea.
+    continue-on-error: ${{ matrix.ref == 'preview' }}
+    name: web contra ${{ matrix.ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: makeplane/plane
+          ref: ${{ matrix.ref }}
+          path: plane
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - working-directory: plane
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm exec turbo run build --filter=web^...
+      - run: python3 -m pip install --quiet pillow
+      - name: Armar y compilar (guardias + tsc)
+        run: |
+          scripts/assemble-web.sh plane
+          scripts/build-web-client.sh plane
+
+  backend:
+    needs: target
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    name: backend contra ${{ needs.target.outputs.rc }}
+    services:
+      db:
+        image: postgres:15.7-alpine
+        env: { POSTGRES_USER: plane, POSTGRES_PASSWORD: plane, POSTGRES_DB: plane }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U plane" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: valkey/valkey:7.2.11-alpine
+        ports: ["6379:6379"]
+      mq:
+        image: rabbitmq:3.13.6-management-alpine
+        env: { RABBITMQ_DEFAULT_USER: plane, RABBITMQ_DEFAULT_PASS: plane, RABBITMQ_DEFAULT_VHOST: plane }
+        ports: ["5672:5672"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Imagen sobre el RC y pytest
+        run: |
+          docker build -t plane-backend-mawesi:dev --build-arg UPSTREAM_VERSION="${{ needs.target.outputs.rc }}" backend
+          docker build -t plane-backend-mawesi-test:dev -f backend/Dockerfile.test backend
+          docker run --rm --network host -e SECRET_KEY=ci -e DATABASE_URL=postgresql://plane:plane@localhost/plane \
+            -e REDIS_URL=redis://localhost:6379/ -e AMQP_URL=amqp://plane:plane@localhost:5672/plane \
+            plane-backend-mawesi-test:dev pytest -c /code/plane_mawesi/pytest.ini /code/plane_mawesi/tests -p no:warnings

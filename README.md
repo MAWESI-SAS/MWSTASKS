@@ -27,6 +27,13 @@ Plane lo cambia en una actualización.
 - `dev/`: entornos locales (ver `dev/README.md`).
 - `tools/`: generadores (portadas).
 
+## CI
+
+- `.github/workflows/ci.yml` (push a `main` y PRs): pytest + `makemigrations --check` del backend sobre la imagen
+  oficial; armado y build de la web sobre Plane@`UPSTREAM_VERSION` (con `tsc` y todos los guardias); E2E con
+  Playwright contra el stack completo; en `main`, publica `ghcr.io/mawesi-sas/mwstasks-{backend,web}:<versión>-<sha>`.
+- `.github/workflows/canary.yml` (lunes): arma contra el último RC de Plane y la rama `preview` para avisar antes.
+
 ## Verificar en local
 
 ```bash

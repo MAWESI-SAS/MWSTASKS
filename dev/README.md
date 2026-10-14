@@ -8,6 +8,6 @@
    (`scripts/assemble-web.sh <plane@tag>` → `scripts/build-web-client.sh <plane@tag>` → `docker build -f web/Dockerfile <plane@tag>/apps/web/build/client`).
 2. Levantar con el compose OFICIAL de Plane + nuestro override:
    `docker compose -p plane-mawesi-full -f <plane@tag>/deployments/cli/community/docker-compose.yml -f dev/compose.full.override.yaml --env-file dev/full.env up -d`
-3. Usuario de prueba: crear `qa@mawesi.local` en el shell de Django, `create_instance_admin`, marcar
-   `Instance.is_setup_done` y `is_signup_screen_visited`, y `valkey-cli FLUSHALL` (Plane cachea /api/instances/).
-4. `RUN=<id> python3 web/e2e/smoke.py <carpeta-capturas>` → `{'sidebar': True, 'peek': True, 'ruta': True, 'register': True}`.
+3. Usuario de prueba: `dev/seed-qa.sh plane-mawesi-full` (crea `qa@mawesi.local`, lo hace admin de la instancia,
+   marca la instancia como configurada y limpia la caché de Redis). Solo para local/CI.
+4. `web/e2e/run-all.sh <carpeta-capturas>`: corre smoke, horas, reporte, campos y tema sobre un workspace nuevo.
