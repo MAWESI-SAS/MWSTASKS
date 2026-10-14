@@ -1,0 +1,11 @@
+# Se usa JUNTO al compose oficial de Plane:
+#   docker compose -p plane-mawesi-full -f <plane>/deployments/cli/community/docker-compose.yml \
+#     -f dev/compose.full.override.yaml --env-file dev/full.env up -d
+# Solo cambia las imágenes del backend y la web por las de MAWESI.
+services:
+  web: { image: plane-web-mawesi:dev }
+  api: { image: plane-backend-mawesi:dev }
+  worker: { image: plane-backend-mawesi:dev }
+  beat-worker: { image: plane-backend-mawesi:dev }
+  migrator: { image: plane-backend-mawesi:dev }
+  plane-minio: { image: "docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z" }

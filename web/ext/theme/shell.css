@@ -1,0 +1,101 @@
+/*
+ * Copyright (c) 2026-present MAWESI S.A.S.
+ * SPDX-License-Identifier: AGPL-3.0-only
+ *
+ * "Marco" MAWESI alrededor de la app (estilo MWSign): el lienzo de Plane (--bg-canvas, gris) pasa a transparente
+ * y detrás va el gradiente de marca azul marino → violeta con el brillo lavanda de MWSign. La barra superior queda
+ * sobre el gradiente con texto blanco (variables redefinidas solo dentro de .mawesi-topbar).
+ * Sin @layer: gana a los tokens de Plane (en @layer base/theme).
+ */
+:root {
+  --bg-canvas: transparent;
+  --mawesi-shell:
+    radial-gradient(circle at 88% -12%, rgb(196 178 240 / 45%), transparent 34rem),
+    radial-gradient(circle at -6% 110%, rgb(100 69 154 / 55%), transparent 30rem),
+    linear-gradient(120deg, #1f2d5a 0%, #213062 45%, #64459a 100%);
+}
+:root[data-theme*="dark"] {
+  --mawesi-shell:
+    radial-gradient(circle at 88% -12%, rgb(196 178 240 / 18%), transparent 34rem),
+    radial-gradient(circle at -6% 110%, rgb(100 69 154 / 35%), transparent 30rem),
+    linear-gradient(120deg, #101530 0%, #141a35 45%, #2e2150 100%);
+}
+body {
+  background-image: var(--mawesi-shell);
+  background-color: #1f2d5a;
+  background-attachment: fixed;
+}
+::selection {
+  background: #c4b2f0;
+  color: #1f2d5a;
+}
+
+/* Copia de los colores originales de Plane, calculada en la raíz (respeta claro/oscuro), para restaurarlos
+ * dentro de los menús que Plane dibuja DENTRO de la barra (selector de workspace, menú del usuario). */
+:root {
+  --mawesi-orig-txt-primary: var(--txt-primary);
+  --mawesi-orig-txt-secondary: var(--txt-secondary);
+  --mawesi-orig-txt-tertiary: var(--txt-tertiary);
+  --mawesi-orig-txt-placeholder: var(--txt-placeholder);
+  --mawesi-orig-txt-icon-primary: var(--txt-icon-primary);
+  --mawesi-orig-txt-icon-secondary: var(--txt-icon-secondary);
+  --mawesi-orig-txt-icon-tertiary: var(--txt-icon-tertiary);
+  --mawesi-orig-bg-layer-1: var(--bg-layer-1);
+  --mawesi-orig-bg-layer-1-hover: var(--bg-layer-1-hover);
+  --mawesi-orig-bg-layer-2: var(--bg-layer-2);
+  --mawesi-orig-bg-layer-2-hover: var(--bg-layer-2-hover);
+  --mawesi-orig-bg-surface-1: var(--bg-surface-1);
+  --mawesi-orig-bg-surface-2: var(--bg-surface-2);
+  --mawesi-orig-bg-layer-transparent-hover: var(--bg-layer-transparent-hover);
+  --mawesi-orig-border-subtle: var(--border-subtle);
+  --mawesi-orig-border-subtle-1: var(--border-subtle-1);
+  --mawesi-orig-border-strong: var(--border-strong);
+}
+
+/* Barra superior sobre el gradiente: blanco y vidrio, como la barra de MWSign. */
+.mawesi-topbar {
+  display: contents;
+  color: #ffffff;
+  --txt-primary: #ffffff;
+  --txt-secondary: rgb(255 255 255 / 82%);
+  --txt-tertiary: rgb(255 255 255 / 68%);
+  --txt-placeholder: rgb(255 255 255 / 62%);
+  --txt-icon-primary: #ffffff;
+  --txt-icon-secondary: rgb(255 255 255 / 82%);
+  --txt-icon-tertiary: rgb(255 255 255 / 68%);
+  --bg-layer-1: rgb(255 255 255 / 10%);
+  --bg-layer-1-hover: rgb(255 255 255 / 16%);
+  --bg-layer-2: rgb(255 255 255 / 12%);
+  --bg-layer-2-hover: rgb(255 255 255 / 18%);
+  --bg-surface-1: rgb(255 255 255 / 10%);
+  --bg-surface-2: rgb(255 255 255 / 14%);
+  --bg-layer-transparent-hover: rgb(255 255 255 / 12%);
+  --border-subtle: rgb(255 255 255 / 18%);
+  --border-subtle-1: rgb(255 255 255 / 22%);
+  --border-strong: rgb(255 255 255 / 28%);
+}
+
+/* Menús y popovers abiertos desde la barra: vuelven a los colores normales de Plane.
+ * Incluye el buscador de comandos (Power K): el panel es un div sin role que contiene [cmdk-root] y el campo de
+ * búsqueda es su hermano; se restaura en el padre común (`:has(> * > [cmdk-root])`, solo existe con el buscador
+ * abierto). Bug 2026-10-14: quedaba translúcido y el campo blanco sobre blanco. web/e2e/theme.py lo verifica. */
+.mawesi-topbar :is([role="menu"], [role="listbox"], [role="dialog"], [cmdk-root], :has(> * > [cmdk-root])) {
+  color: var(--mawesi-orig-txt-primary);
+  --txt-primary: var(--mawesi-orig-txt-primary);
+  --txt-secondary: var(--mawesi-orig-txt-secondary);
+  --txt-tertiary: var(--mawesi-orig-txt-tertiary);
+  --txt-placeholder: var(--mawesi-orig-txt-placeholder);
+  --txt-icon-primary: var(--mawesi-orig-txt-icon-primary);
+  --txt-icon-secondary: var(--mawesi-orig-txt-icon-secondary);
+  --txt-icon-tertiary: var(--mawesi-orig-txt-icon-tertiary);
+  --bg-layer-1: var(--mawesi-orig-bg-layer-1);
+  --bg-layer-1-hover: var(--mawesi-orig-bg-layer-1-hover);
+  --bg-layer-2: var(--mawesi-orig-bg-layer-2);
+  --bg-layer-2-hover: var(--mawesi-orig-bg-layer-2-hover);
+  --bg-surface-1: var(--mawesi-orig-bg-surface-1);
+  --bg-surface-2: var(--mawesi-orig-bg-surface-2);
+  --bg-layer-transparent-hover: var(--mawesi-orig-bg-layer-transparent-hover);
+  --border-subtle: var(--mawesi-orig-border-subtle);
+  --border-subtle-1: var(--mawesi-orig-border-subtle-1);
+  --border-strong: var(--mawesi-orig-border-strong);
+}

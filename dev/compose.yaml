@@ -1,0 +1,44 @@
+# Entorno LOCAL de verificación del backend MAWESI (no es producción).
+name: plane-mawesi-dev
+x-app-env: &app-env
+  DATABASE_URL: postgresql://plane:plane@db/plane
+  REDIS_URL: redis://redis:6379/
+  AMQP_URL: amqp://plane:plane@mq:5672/plane
+  SECRET_KEY: dev-only-secret-key-not-for-production-0123456789
+  WEB_URL: http://localhost:8099
+  DEBUG: "0"
+  USE_MINIO: "1"
+  AWS_ACCESS_KEY_ID: access-key
+  AWS_SECRET_ACCESS_KEY: secret-key
+  AWS_S3_ENDPOINT_URL: http://minio:9000
+  AWS_S3_BUCKET_NAME: uploads
+  GUNICORN_WORKERS: "1"
+services:
+  db:
+    image: postgres:15.7-alpine
+    environment: { POSTGRES_USER: plane, POSTGRES_PASSWORD: plane, POSTGRES_DB: plane }
+  redis:
+    image: valkey/valkey:7.2.11-alpine
+  mq:
+    image: rabbitmq:3.13.6-management-alpine
+    environment: { RABBITMQ_DEFAULT_USER: plane, RABBITMQ_DEFAULT_PASS: plane, RABBITMQ_DEFAULT_VHOST: plane }
+  minio:
+    image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
+    command: server /export
+    environment: { MINIO_ROOT_USER: access-key, MINIO_ROOT_PASSWORD: secret-key }
+  migrator:
+    image: plane-backend-mawesi:dev
+    command: ./bin/docker-entrypoint-migrator.sh
+    environment: *app-env
+    depends_on: [db, redis, mq]
+  api:
+    image: plane-backend-mawesi:dev
+    command: ./bin/docker-entrypoint-api.sh
+    environment: *app-env
+    depends_on: [migrator, minio]
+    ports: ["127.0.0.1:8099:8000"]
+  worker:
+    image: plane-backend-mawesi:dev
+    command: ./bin/docker-entrypoint-worker.sh
+    environment: *app-env
+    depends_on: [migrator]

@@ -1,0 +1,7 @@
+# Imagen de pruebas: la imagen MAWESI + dependencias de test de Plane.
+ARG BASE=plane-backend-mawesi:dev
+FROM ${BASE}
+COPY requirements-test.txt /tmp/requirements-test.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-test.txt
+ENV DJANGO_SETTINGS_MODULE=plane_mawesi.settings_test
+CMD ["pytest", "-c", "/code/plane_mawesi/pytest.ini", "/code/plane_mawesi/tests"]

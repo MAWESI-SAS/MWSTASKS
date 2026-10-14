@@ -1,0 +1,6 @@
+# Copia de apps/api/requirements/test.txt de Plane v1.4.2 (sin coverage/xdist/httpx).
+pytest==9.0.3
+pytest-django==4.12.0
+pytest-mock==3.11.1
+factory-boy==3.3.0
+freezegun==1.2.2
