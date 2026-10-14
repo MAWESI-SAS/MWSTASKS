@@ -129,6 +129,10 @@ porque Plane reemplaza su librería de UI. Al adoptar la versión que traiga est
 | `TextArea` de `@plane/ui` | `@makeplane/propel/components/text-area` |
 | `Breadcrumbs` de `@plane/ui` | `@plane/blocks/breadcrumb` |
 | `Header` de `@plane/ui` | `@plane/blocks/layout` |
+| `PlaneLogo`/`PlaneLockup`/`PlaneWordmark` de `@plane/propel/icons` | `@plane/blocks/icons` (**ya soportado**: el plugin intercepta ambos) |
+
+Estado del canary contra `preview` (2026-10-14, `4605f0078f`): reemplazos de texto, logos, rutas, tema y portadas OK;
+falla solo `ext/plane.ts` (`@plane/propel/button`), que es la tabla de arriba.
 
 Ya resuelto para no depender de la librería: `ToggleSwitch` → `ext/ui/toggle.tsx`; `ModalCore`/`AlertModalCore`/
 `EModal*` → `ext/ui/modal.tsx` y `ext/ui/confirm.tsx`.

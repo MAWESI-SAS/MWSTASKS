@@ -25,7 +25,12 @@ const EXT = path.join(WEB, "ext");
 const AT_ROOTS = [path.join(WEB, "core"), WEB];
 const EXTS = [".tsx", ".ts", "/index.tsx", "/index.ts"];
 const REPO = path.resolve(WEB, "../..");
-const ICONS_ID = "\0mawesi:propel-icons";
+/** Módulos de íconos de Plane donde viven PlaneLogo/PlaneLockup: v1.4.x @plane/propel, preview @plane/blocks. */
+const ICON_SOURCES = ["@plane/propel/icons", "@plane/blocks/icons"];
+const ICONS_PREFIX = "\0mawesi:icons:";
+
+/** v1.4.x tiene apps/web/core/…; preview movió todo a apps/web/…: se comparan rutas sin ese "core/". */
+const canonical = (rel: string) => rel.replace(/^apps\/web\/core\//, "apps/web/");
 
 /** Aplica reemplazos y devuelve [código, cuántos reemplazos hizo cada regla]. */
 const applyRules = (code: string, rules: Array<[string | RegExp, string]>): [string, number[]] => {
@@ -62,7 +67,7 @@ function mawesiOverlay(): Plugin {
   const hits = new Set<string>();
   const patched = new Set<string>(); // TEXT_PATCHES aplicados (por `file`)
   const localeHits = new Map<string, number>(); // reemplazos de marca por idioma
-  let realIcons: string | null = null;
+  const realIcons = new Map<string, string>(); // origen -> archivo real
   return {
     name: "mawesi-overlay",
     enforce: "pre",
@@ -75,11 +80,11 @@ function mawesiOverlay(): Plugin {
     },
     async resolveId(source, importer, options) {
       // Íconos de Plane: módulo virtual que pisa solo los logos de marca.
-      if (source === "@plane/propel/icons" && importer !== ICONS_ID) {
+      if (ICON_SOURCES.includes(source) && !importer?.startsWith(ICONS_PREFIX)) {
         const r = await this.resolve(source, importer, { ...options, skipSelf: true });
         if (!r) return null;
-        realIcons = r.id;
-        return ICONS_ID;
+        realIcons.set(source, r.id);
+        return ICONS_PREFIX + source;
       }
       if (source.startsWith("@upstream/")) {
         const found = findUpstream(source.slice("@upstream/".length));
@@ -98,13 +103,15 @@ function mawesiOverlay(): Plugin {
       return null;
     },
     load(id) {
-      if (id === ICONS_ID) return iconsShim(realIcons!, path.join(EXT, "brand/logos.tsx"));
+      if (id.startsWith(ICONS_PREFIX)) {
+        return iconsShim(realIcons.get(id.slice(ICONS_PREFIX.length))!, path.join(EXT, "brand/logos.tsx"));
+      }
       return null;
     },
     transform(code, id) {
       const file = id.split("?")[0];
-      const rel = path.relative(REPO, file).replace(/\\/g, "/");
-      const patch = TEXT_PATCHES.find((p) => rel === p.file || file.endsWith("/" + p.file));
+      const rel = canonical(path.relative(REPO, file).replace(/\\/g, "/"));
+      const patch = TEXT_PATCHES.find((p) => rel === canonical(p.file));
       if (patch) {
         const [out, counts] = applyRules(code, patch.rules);
         const missing = counts.flatMap((n, i) => (n === 0 ? [String(patch.rules[i][0])] : []));
@@ -133,7 +140,7 @@ function mawesiOverlay(): Plugin {
       for (const lang of ["en", "es"]) {
         if (!localeHits.get(lang)) this.error(`[mawesi] No se reemplazó "Plane" en las traducciones ${lang}: revisar LOCALE_FILE`);
       }
-      if (!realIcons) this.error("[mawesi] Nadie importó @plane/propel/icons: revisar el reemplazo de logos");
+      if (!realIcons.size) this.error(`[mawesi] Nadie importó ${ICON_SOURCES.join(" ni ")}: revisar el reemplazo de logos`);
     },
   };
 }
