@@ -46,6 +46,19 @@ uv run --with-requirements tools/migrate_clickup/requirements.txt \
 
 Al final imprime un JSON con lo creado, los avisos y ejemplos de cada aviso.
 
+## Personas (incluidos ex empleados)
+
+La API de Plane no crea usuarios. `people_shell.py` corre dentro del contenedor api:
+
+```bash
+docker exec -i -e ACTION=add -e SLUG=mawesi -e PEOPLE="$(cat personas.json)" <api> python manage.py shell < tools/migrate_clickup/people_shell.py
+# ... migración ...
+docker exec -i -e ACTION=deactivate -e SLUG=mawesi -e PEOPLE="$(cat ex-empleados.json)" <api> python manage.py shell < tools/migrate_clickup/people_shell.py
+```
+
+Los ex empleados se crean **antes** de migrar, para que tareas, horas y comentarios queden a su nombre, y se **desactivan** al
+terminar (no pueden entrar, ni con Microsoft). Para una corrida incremental posterior, volver a correr `add` antes y `deactivate` después.
+
 ## Prueba local
 
 1. Levantar el stack completo (`dev/README.md`) y correr `dev/seed-qa.sh`.
