@@ -53,7 +53,7 @@ class Plane:
             except (urllib.error.URLError, OSError) as e:
                 # Corte de red: solo se reintentan las lecturas (una escritura repetida podría duplicar horas).
                 if method == "GET" and attempt < 5:
-                    time.sleep(min(60, 3 * (attempt + 1)))
+                    time.sleep(15 * (attempt + 1))  # ~4 min en total: aguanta cortes de DNS de la VPN
                     continue
                 raise PlaneError(0, path, str(e)) from None
         raise PlaneError(0, path, "sin respuesta")
