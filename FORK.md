@@ -26,6 +26,8 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
 | `components/issues/issue-detail/issue-activity/activity/activity-list` | `overrides/issues/activity-list.tsx`: pinta `field="worklog"`; el resto lo pinta Plane (que devuelve `null` para campos desconocidos) |
 | `components/workspace/sidebar/helper` | `overrides/workspace/sidebar-helper.tsx`: ícono de reloj para el ítem `mawesi_worklogs`; re-exporta todo lo demás |
 | `components/navigation/top-navigation-root` | `overrides/navigation/top-navigation-root.tsx`: envuelve la barra superior en `.mawesi-topbar` (`display: contents`, sin cambiar el layout) para pintarla en blanco sobre el gradiente |
+| `components/workspace/sidebar/project-navigation` | `overrides/workspace/project-navigation.tsx`: pasa la prop `additionalNavigationItems` (existe en Plane, CE no la usa) con el ítem "Tabla" y dibuja debajo el árbol "Carpeta > Lista" (`folders/module-tree.tsx`), armado con los módulos `"Carpeta / Lista"`. Solo en el modo de menú "acordeón" (el de por defecto) |
+| `components/issues/issue-layouts/properties/all-properties` | `overrides/issues/all-properties.tsx`: chip de horas al final de las propiedades de la tarjeta (tablero y lista). El contenedor de Plane queda en `contents` para compartir el flex. Los totales se piden en lote por proyecto (`worklog/totals.ts`) |
 | `hooks/oauth/extended` | `overrides/auth/oauth-extended.tsx`: punto de extensión de Plane para logins extra (en CE devuelve vacío). Suma "Continue with Microsoft" si `GET /api/mawesi/auth-providers/` dice que está configurado |
 
 ## Rutas y menú
@@ -35,6 +37,10 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
   `scripts/assemble-web.sh` falla si Plane renombra alguno.
 - `ext/routes.ts` también repite la cadena de ajustes (`(settings)/layout` → `settings/projects/layout` →
   `settings/projects/[projectId]/layout`) para `…/settings/projects/:projectId/mawesi-campos`.
+- `ext/routes.ts` cuelga `…/projects/:projectId/mawesi-tabla` (vista Tabla) del layout de proyecto de Plane
+  (`PROJECT_LAYOUT`), así `ProjectAuthWrapper` controla el acceso y carga estados y módulos.
+- El aviso del cronómetro (`worklog/running-timer.tsx`) se monta en el envoltorio de `top-navigation-root`, fuera de
+  `.mawesi-topbar` (que pinta todo en blanco).
 - `ext/nav.ts` agrega "Campos" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
   `PROJECT_SETTINGS_ICONS` (objetos exportados de Plane, mutables).
 - `ext/nav.ts` agrega "Horas" a `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (arreglo exportado de Plane). Aparece

@@ -11,6 +11,7 @@ import { MawesiConfirm } from "../ui/confirm";
 import { formatMinutes } from "./format";
 import { worklogService } from "./service";
 import type { TWorklog } from "./service";
+import { TimerButton } from "./timer-button";
 import { useWorklogPermissions, useWorklogs } from "./use-worklogs";
 import { WorklogModal } from "./worklog-modal";
 
@@ -80,15 +81,18 @@ export const WorklogPanel = observer(function WorklogPanel({ workspaceSlug, proj
         </ul>
       )}
       {!disabled && (
-        <button
-          type="button"
-          onClick={() => setModal({ open: true })}
-          className="flex items-center gap-1 rounded-md px-1 py-1 text-13 text-secondary hover:bg-layer-1 hover:text-primary"
-          data-mawesi="worklog-add"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          {t("worklog.log")}
-        </button>
+        <div className="flex flex-wrap items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setModal({ open: true })}
+            className="flex items-center gap-1 rounded-md px-1 py-1 text-13 text-secondary hover:bg-layer-1 hover:text-primary"
+            data-mawesi="worklog-add"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {t("worklog.log")}
+          </button>
+          <TimerButton workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} onStopped={refresh} />
+        </div>
       )}
       <WorklogModal
         isOpen={modal.open}

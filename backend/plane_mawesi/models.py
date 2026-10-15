@@ -37,6 +37,26 @@ class Worklog(ProjectBaseModel):
         return f"{self.issue_id} · {self.member_id} · {self.duration_minutes} min · {self.date}"
 
 
+class Timer(ProjectBaseModel):
+    """Cronómetro andando (como el ▶ de ClickUp). Uno por persona y workspace; al pararlo se vuelve un Worklog."""
+
+    issue = models.ForeignKey("db.Issue", on_delete=models.CASCADE, related_name="mawesi_timers")
+    member = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mawesi_timers")
+    started_at = models.DateTimeField()
+    description = models.TextField(blank=True, default="")
+
+    class Meta:
+        db_table = "mawesi_timers"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["workspace", "member"], condition=models.Q(deleted_at__isnull=True), name="mawesi_timer_one_per_member"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.member_id} · {self.issue_id} · desde {self.started_at:%Y-%m-%d %H:%M}"
+
+
 class PropertyType(models.TextChoices):
     TEXT = "text", "Texto"
     URL = "url", "URL"

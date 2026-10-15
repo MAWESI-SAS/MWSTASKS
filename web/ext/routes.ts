@@ -16,6 +16,8 @@ export const LAYOUT_CHAIN = [
   "./(all)/[workspaceSlug]/(projects)/layout.tsx",
 ] as const;
 
+export const PROJECT_LAYOUT = "./(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/layout.tsx";
+
 export const SETTINGS_CHAIN = [
   "./(all)/[workspaceSlug]/(settings)/layout.tsx",
   "./(all)/[workspaceSlug]/(settings)/settings/projects/layout.tsx",
@@ -29,6 +31,12 @@ export const extendedRoutes: RouteConfigEntry[] = [
       layout(LAYOUT_CHAIN[2], [
         layout("../ext/pages/worklog-report/layout.tsx", [
           route(":workspaceSlug/mawesi/horas", "../ext/pages/worklog-report/page.tsx"),
+        ]),
+        // Dentro del layout del proyecto: ProjectAuthWrapper controla el acceso y carga estados y módulos.
+        layout(PROJECT_LAYOUT, [
+          layout("../ext/pages/table/layout.tsx", [
+            route(":workspaceSlug/projects/:projectId/mawesi-tabla", "../ext/pages/table/page.tsx"),
+          ]),
         ]),
       ]),
       layout(SETTINGS_CHAIN[0], [

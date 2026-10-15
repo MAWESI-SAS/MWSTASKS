@@ -10,6 +10,9 @@ export const REPLACEMENTS: Record<string, string> = {
   "components/issues/issue-detail/sidebar": "overrides/issues/issue-detail-sidebar.tsx",
   "components/issues/issue-detail/issue-activity/activity/activity-list": "overrides/issues/activity-list.tsx",
   "components/workspace/sidebar/helper": "overrides/workspace/sidebar-helper.tsx",
+  // Parecido a ClickUp: "Tabla" + árbol Carpeta > Lista en el menú, y horas en las tarjetas
+  "components/workspace/sidebar/project-navigation": "overrides/workspace/project-navigation.tsx",
+  "components/issues/issue-layouts/properties/all-properties": "overrides/issues/all-properties.tsx",
   "components/navigation/top-navigation-root": "overrides/navigation/top-navigation-root.tsx",
   // Marca MWSTASKS by MAWESI
   "components/common/logo-spinner": "overrides/common/logo-spinner.tsx",

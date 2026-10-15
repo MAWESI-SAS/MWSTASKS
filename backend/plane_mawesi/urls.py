@@ -7,6 +7,8 @@ from plane.urls import urlpatterns as plane_urlpatterns
 
 from plane_mawesi.auth import views as auth
 from plane_mawesi.views import properties as pr
+from plane_mawesi.views import table as tb
+from plane_mawesi.views import timers as tm
 from plane_mawesi.views import worklogs as w
 
 handler404 = "plane.app.views.error_404.custom_404_view"
@@ -41,6 +43,11 @@ urlpatterns = [
     path("api/mawesi/auth-providers/", auth.AuthProvidersEndpoint.as_view(), name="mawesi-auth-providers"),
     *_routes("api/mawesi/", w.IssueWorklogsEndpoint, w.WorklogDetailEndpoint, w.WorklogTotalsEndpoint, w.WorklogReportEndpoint, ""),
     *_routes("api/v1/mawesi/", w.IssueWorklogsKeyEndpoint, w.WorklogDetailKeyEndpoint, w.WorklogTotalsKeyEndpoint, w.WorklogReportKeyEndpoint, "-key"),
+    path(f"api/mawesi/{PROJECT}/table/", tb.ProjectTableEndpoint.as_view(), name="mawesi-table"),
+    # Cronómetro: solo la web (lo usa una persona desde el navegador).
+    path("api/mawesi/workspaces/<str:slug>/timer/", tm.CurrentTimerEndpoint.as_view(), name="mawesi-timer"),
+    path("api/mawesi/workspaces/<str:slug>/timer/stop/", tm.StopTimerEndpoint.as_view(), name="mawesi-timer-stop"),
+    path(f"api/mawesi/{ISSUE}/timer/start/", tm.StartTimerEndpoint.as_view(), name="mawesi-timer-start"),
     *_property_routes("api/mawesi/", pr.PropertiesEndpoint, pr.PropertyDetailEndpoint, pr.IssueValuesEndpoint, pr.ValuesBatchEndpoint, ""),
     *_property_routes("api/v1/mawesi/", pr.PropertiesKeyEndpoint, pr.PropertyDetailKeyEndpoint, pr.IssueValuesKeyEndpoint, pr.ValuesBatchKeyEndpoint, "-key"),
     *plane_urlpatterns,

@@ -5,6 +5,7 @@
 import useSWR from "swr";
 import { EUserPermissions, useIssueDetail, useUser, useUserPermissions } from "../plane";
 import { worklogService } from "./service";
+import { refreshIssueTotal } from "./totals";
 import type { TWorklog } from "./service";
 
 export const useWorklogs = (ws: string, projectId: string, issueId: string) => {
@@ -19,6 +20,7 @@ export const useWorklogs = (ws: string, projectId: string, issueId: string) => {
   /** Recarga la lista y el historial de la tarea (donde aparece la fila de horas). */
   const refresh = async () => {
     await mutate();
+    void refreshIssueTotal(ws, projectId, issueId);
     try {
       await fetchActivities(ws, projectId, issueId);
     } catch {

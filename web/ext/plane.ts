@@ -29,6 +29,8 @@ export { useIssueDetail } from "@/hooks/store/use-issue-detail";
 export { ButtonAvatars } from "@/components/dropdowns/member/avatar";
 export { IssueActivityBlockComponent } from "@/components/issues/issue-detail/issue-activity/activity/actions";
 export { useProject } from "@/hooks/store/use-project";
+export { useModule } from "@/hooks/store/use-module";
+export { SidebarNavItem } from "@/components/sidebar/sidebar-navigation";
 export { AppHeader } from "@/components/core/app-header";
 export { ContentWrapper } from "@/components/core/content-wrapper";
 // PageHead propio (marca): desde ext/ el plugin NO reemplaza módulos, así que se toma directo de overrides/.

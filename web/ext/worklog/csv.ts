@@ -6,7 +6,7 @@
  */
 import type { TReportRow } from "./service";
 
-const cell = (v: string | number) => {
+export const cell = (v: string | number) => {
   const s = String(v ?? "");
   return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
