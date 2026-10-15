@@ -3,6 +3,7 @@
 """Cliente mínimo de la API v1 de MWSTASKS (Plane + rutas /api/v1/mawesi/). Autenticación con X-API-Key."""
 import json
 import time
+import uuid
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -64,6 +65,37 @@ class Plane:
             if not data.get("next_page_results"):
                 return out
             cursor = data["next_cursor"]
+
+    def upload_presigned(self, upload_data: dict, filename: str, content: bytes, mime: str):
+        """Sube un archivo con el POST prefirmado que devuelve Plane (multipart/form-data)."""
+        if self.dry_run:
+            return
+        boundary = uuid.uuid4().hex
+        parts = []
+        for k, v in (upload_data.get("fields") or {}).items():
+            parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
+        safe = filename.replace('"', "")
+        parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{safe}"\r\n'
+                     f"Content-Type: {mime}\r\n\r\n".encode() + content + b"\r\n")
+        parts.append(f"--{boundary}--\r\n".encode())
+        req = urllib.request.Request(upload_data["url"], data=b"".join(parts), method="POST",
+                                     headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
+        for attempt in range(4):
+            try:
+                with urllib.request.urlopen(req, timeout=300) as r:
+                    return r.status
+            except urllib.error.HTTPError as e:
+                if e.code >= 500 and attempt < 3:
+                    time.sleep(3 * (attempt + 1))
+                    continue
+                raise PlaneError(e.code, "upload", e.read().decode(errors="replace")) from None
+            except (urllib.error.URLError, OSError) as e:
+                # p. ej. el proxy corta la conexión si el archivo supera su límite ("Broken pipe")
+                raise PlaneError(0, "upload", str(e)) from None
+
+    def file_size_limit(self) -> int:
+        """Límite de subida que informa la instancia (FILE_SIZE_LIMIT de Plane)."""
+        return int(float((self.get("/api/instances/") or {}).get("config", {}).get("file_size_limit") or 5242880))
 
     # --- rutas ---
     def ws(self, rest=""):

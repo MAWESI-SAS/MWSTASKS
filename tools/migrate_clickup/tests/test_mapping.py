@@ -64,3 +64,19 @@ def test_descripcion_y_comentario():
 def test_estimado():
     assert M.estimate_hours(480) is None and M.estimate_hours(None) is None
     assert M.estimate_hours(5_400_000) == 1.5
+
+
+def test_adjuntos():
+    assert M.attachment_mime({"mimetype": "text/markdown"}) == "text/markdown"
+    assert M.attachment_mime({"mimetype": "application/pdf; charset=binary"}) == "application/pdf"
+    assert M.attachment_mime({}) == "application/octet-stream"
+    assert M.attachment_name({"title": "  informe.pdf "}) == "informe.pdf"
+    assert M.attachment_name({"title": "", "extension": "png"}) == "adjunto.png"
+
+
+def test_relaciones_y_textos_largos():
+    rel = [{"id": "a1", "name": "Reporte e-compras"}, {"id": "b2", "name": "Ajuste hoteles"}]
+    assert M.field_value({"type": "list_relationship"}, rel, {}, {}) == ("Reporte e-compras; Ajuste hoteles", None)
+    assert M.field_value({"type": "tasks"}, rel[:1], {}, {}) == ("Reporte e-compras", None)
+    v, _ = M.field_value({"type": "text"}, "x" * 2500, {}, {})
+    assert len(v) == 2000 and v.endswith("…")

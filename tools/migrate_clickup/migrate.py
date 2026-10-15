@@ -44,11 +44,13 @@ class Migration:
     def read_clickup(self):
         wanted = {f.strip() for f in self.a.folders.split(",") if f.strip()}
         self.lists, self.tasks, self.fields = [], {}, {}
-        for f in self.cu.folders(self.a.space):
-            if wanted and f["name"] not in wanted:
+        groups = [(f["name"], f["lists"]) for f in self.cu.folders(self.a.space)]
+        groups.append((M.LOOSE, self.cu.folderless_lists(self.a.space)))  # listas fuera de carpetas
+        for folder, lists in groups:
+            if wanted and folder not in wanted:
                 continue
-            for lst in f["lists"]:
-                lst = {**lst, "folder": f["name"]}
+            for lst in lists:
+                lst = {**lst, "folder": folder}
                 detail = self.cu.list(lst["id"])
                 lst["statuses"] = detail.get("statuses", [])
                 self.lists.append(lst)
@@ -335,16 +337,67 @@ class Migration:
                     except PlaneError as e:
                         if e.code != 409:
                             self.warn("comentario no creado", f"{tid}: {e}")
+            if not self.a.skip_attachments:
+                self.attachments(tid, iid)
             if n % 250 == 0:
-                self.log(f"  comentarios: {n}/{len(self.issue_by_task)} tareas revisadas")
+                self.log(f"  comentarios y adjuntos: {n}/{len(self.issue_by_task)} tareas revisadas")
+
+    def attachments(self, tid, iid):
+        files = self.cu.task(tid).get("attachments") or []
+        if not files:
+            return
+        path = self.pl.proj(self.pid, f"issues/{iid}/issue-attachments/")
+        done = {a.get("external_id") for a in self.pl.get(path) or [] if a.get("external_source") == M.SOURCE}
+        limit = self.file_limit
+        for a in files:
+            ext = str(a["id"])
+            if ext in done:
+                continue
+            name, mime = M.attachment_name(a), M.attachment_mime(a)
+            if int(a.get("size") or 0) > limit:
+                self.warn(f"adjunto mayor al límite de {limit // 1048576} MB (no se copia)", f"{tid}: {name} ({int(a['size']) // 1048576} MB)")
+                continue
+            try:
+                content = self.cu.download(a["url"], limit)
+            except Exception as e:  # noqa: BLE001 - un adjunto roto no frena la migración
+                self.warn("adjunto que no se pudo bajar de ClickUp", f"{tid}: {name}: {e}")
+                continue
+            body = {"name": name, "type": mime, "size": len(content), "external_source": M.SOURCE, "external_id": ext}
+            try:
+                created = self.pl.write("POST", path, body)
+            except PlaneError as e:
+                if e.code == 409 and e.json().get("id"):
+                    # Quedó creado pero sin archivo (corrida cortada): se borra y se vuelve a crear.
+                    self.pl.write("DELETE", f"{path}{e.json()['id']}/")
+                    created = self.pl.write("POST", path, body)
+                elif e.code == 400 and "type" in e.body.lower() and mime != "application/octet-stream":
+                    body["type"] = mime = "application/octet-stream"
+                    created = self.pl.write("POST", path, body)
+                else:
+                    self.warn("adjunto rechazado por MWSTASKS", f"{tid}: {name}: {e}")
+                    continue
+            try:
+                self.pl.upload_presigned(created["upload_data"], name, content, mime)
+                self.pl.write("PATCH", f"{path}{created['asset_id']}/", {})
+                self.stats["adjuntos"] += 1
+                self.stats["MB de adjuntos"] = round(self.stats["MB de adjuntos"] + len(content) / 1048576, 1)
+            except PlaneError as e:
+                self.warn("adjunto que no se pudo subir", f"{tid}: {name}: {e}")
 
     def worklogs(self):
-        team = self.a.team or self.cu.get("/team")["teams"][0]["id"]
-        cu_ids = [m["user"]["id"] for m in self.cu.get("/team")["teams"][0]["members"]]
+        info = self.cu.get("/team")["teams"][0]
+        team = self.a.team or info["id"]
+        # Miembros actuales + todas las personas vistas en las tareas: ClickUp solo devuelve horas de quien se nombra,
+        # y los ex empleados tienen años de horas (p. ej. TQ desde 2021).
+        cu_ids = {m["user"]["id"] for m in info["members"]} | {k for k in self.cu_user if isinstance(k, int) and k > 0}
         start = int(time.mktime(time.strptime(self.a.time_from, "%Y-%m-%d")) * 1000)
         end = int(time.time() * 1000)
-        entries = self.cu.get(f"/team/{team}/time_entries", start_date=start, end_date=end, space_id=self.a.space,
-                              assignee=",".join(map(str, cu_ids)), include_task_tags="false").get("data", [])
+        entries, ids = {}, sorted(cu_ids)
+        for k in range(0, len(ids), 10):
+            for e in self.cu.get(f"/team/{team}/time_entries", start_date=start, end_date=end, space_id=self.a.space,
+                                 assignee=",".join(map(str, ids[k:k + 10])), include_task_tags="false").get("data", []):
+                entries[e["id"]] = e
+        entries = list(entries.values())
         by_issue = collections.defaultdict(list)
         for e in entries:
             tid = (e.get("task") or {}).get("id")
@@ -380,6 +433,9 @@ class Migration:
     def run(self):
         self.read_clickup()
         self.me = self.pl.get("/api/v1/users/me/")["id"]
+        # Nunca más grande que lo que acepta la instancia: si no, el proxy corta la subida.
+        self.file_limit = min(self.a.max_file_mb * 1024 * 1024, self.pl.file_size_limit())
+        self.log(f"Límite de adjuntos: {self.file_limit // 1048576} MB")
         self.people()
         self.project()
         self.states(); self.labels(); self.cycles_and_modules(); self.properties()
@@ -387,7 +443,7 @@ class Migration:
         self.issues(); self.grouping()
         self.log("Cargando valores de campos…"); self.values()
         if not self.a.skip_comments:
-            self.log("Copiando comentarios…"); self.comments()
+            self.log("Copiando comentarios y adjuntos…"); self.comments()
         if not self.a.skip_time:
             self.log("Copiando horas…"); self.worklogs()
         report = {"proyecto": self.pid, "creado": dict(self.stats), "avisos": dict(self.warnings),
@@ -405,9 +461,11 @@ def main():
     ap.add_argument("--workspace", required=True)
     ap.add_argument("--project-name", required=True)
     ap.add_argument("--identifier", required=True)
-    ap.add_argument("--time-from", default="2024-01-01")
+    ap.add_argument("--time-from", default="2020-01-01")
     ap.add_argument("--estimate", action="store_true", help="copiar el tiempo estimado como campo 'Estimado (h)'")
-    ap.add_argument("--skip-comments", action="store_true")
+    ap.add_argument("--skip-comments", action="store_true", help="tampoco copia adjuntos (van en el mismo recorrido)")
+    ap.add_argument("--skip-attachments", action="store_true")
+    ap.add_argument("--max-file-mb", type=int, default=20, help="adjuntos más grandes se saltan (igual que FILE_SIZE_LIMIT)")
     ap.add_argument("--skip-time", action="store_true")
     a = ap.parse_args()
     cu = ClickUp(os.environ["CLICKUP_TOKEN"])

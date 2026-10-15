@@ -23,7 +23,13 @@ Copia un espacio de ClickUp a un proyecto de MWSTASKS.
 | Tiempo estimado (`--estimate`) | Campo "Estimado (h)" |
 | Horas registradas | Horas MWSTASKS (marca `[clickup:<id>]` en la nota) |
 
-No se copian: adjuntos (no hay en el piloto), dependencias, watchers, docs (van a Outline).
+| Adjuntos de las tareas | Adjuntos (respeta el límite de subida de la instancia; los más grandes quedan como aviso) |
+| Listas fuera de carpetas | Igual que las demás (`--folders "(sin carpeta)"` para elegirlas) |
+| Campos de relación con otras tareas | Texto con los nombres de las tareas |
+
+Horas: se piden para los miembros actuales **y** para todas las personas que aparecen en las tareas (ex empleados), desde 2020.
+
+No se copian: dependencias, watchers, docs (van a Outline).
 
 ## Uso
 

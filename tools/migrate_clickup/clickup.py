@@ -60,6 +60,26 @@ class ClickUp:
                 return
             page += 1
 
+    def task(self, task_id):
+        """Detalle de una tarea: es la única forma de ver sus adjuntos (el listado no los trae)."""
+        return self.get(f"/task/{task_id}")
+
+    def download(self, url: str, max_bytes: int) -> bytes:
+        """Baja un adjunto (las URLs de ClickUp son públicas). Corta si supera max_bytes."""
+        req = urllib.request.Request(url)
+        for attempt in range(4):
+            try:
+                with urllib.request.urlopen(req, timeout=300) as r:
+                    data = r.read(max_bytes + 1)
+                    if len(data) > max_bytes:
+                        raise ValueError("demasiado grande")
+                    return data
+            except urllib.error.HTTPError as e:
+                if e.code >= 500 and attempt < 3:
+                    time.sleep(5 * (attempt + 1))
+                    continue
+                raise
+
     def comments(self, task_id):
         return self.get(f"/task/{task_id}/comment").get("comments", [])
 

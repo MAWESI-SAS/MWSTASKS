@@ -20,7 +20,20 @@ FIELD_TYPES = {
     "short_text": "text", "text": "text", "email": "text", "phone": "text", "location": "text",
     "url": "url", "number": "number", "currency": "number", "emoji": "number", "date": "date",
     "checkbox": "checkbox", "drop_down": "select", "labels": "multi_select", "users": "member",
+    # Relaciones con otras tareas: se guardan como texto con los nombres (Plane CE no tiene campos de relación).
+    "list_relationship": "text", "tasks": "text",
 }
+MAX_TEXT = 2000  # igual que plane_mawesi.properties.MAX_TEXT
+
+
+def clip(text: str) -> str:
+    text = text.strip()
+    return text if len(text) <= MAX_TEXT else text[: MAX_TEXT - 1] + "…"
+
+
+def related_names(raw) -> str:
+    items = raw if isinstance(raw, list) else [raw]
+    return "; ".join(str(i.get("name") or i.get("id")) if isinstance(i, dict) else str(i) for i in items)
 
 
 def ms_to_date(ms):
@@ -114,8 +127,10 @@ def field_value(field, raw, option_ids: dict, user_ids: dict):
         return None, None
     t = field["type"]
     kind = FIELD_TYPES.get(t)
+    if t in ("list_relationship", "tasks"):
+        return clip(related_names(raw)) or None, None
     if kind == "text":
-        return str(raw).strip()[:5000] or None, None
+        return clip(str(raw)) or None, None
     if kind == "url":
         v = str(raw).strip()
         return (v, None) if re.match(r"^https?://", v) else (None, f"URL inválida: {v[:60]!r}")
@@ -142,7 +157,7 @@ def field_value(field, raw, option_ids: dict, user_ids: dict):
         ids = [i for i in ids if i]
         warn = "más de una persona: se guarda la primera" if len(users) > 1 else None
         return (ids[0] if ids else None), (warn if ids else "persona sin cuenta en MWSTASKS")
-    return str(raw)[:5000], f"tipo {t} guardado como texto"
+    return clip(str(raw)), f"tipo {t} guardado como texto"
 
 
 def estimate_hours(ms):
@@ -150,6 +165,20 @@ def estimate_hours(ms):
     if not ms or int(ms) < 60_000:
         return None
     return round(int(ms) / 3_600_000, 2)
+
+
+LOOSE = "(sin carpeta)"
+
+
+def attachment_mime(a: dict) -> str:
+    """Tipo MIME del adjunto. Si falta, binario genérico (Plane lo acepta)."""
+    m = (a.get("mimetype") or "").split(";")[0].strip().lower()
+    return m if "/" in m else "application/octet-stream"
+
+
+def attachment_name(a: dict) -> str:
+    name = (a.get("title") or "").strip() or f"adjunto.{a.get('extension') or 'bin'}"
+    return name[:200]
 
 
 def split_minutes(total: int, cap: int = 1440):
