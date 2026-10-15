@@ -80,3 +80,8 @@ def test_relaciones_y_textos_largos():
     assert M.field_value({"type": "tasks"}, rel[:1], {}, {}) == ("Reporte e-compras", None)
     v, _ = M.field_value({"type": "text"}, "x" * 2500, {}, {})
     assert len(v) == 2000 and v.endswith("…")
+
+
+def test_nombre_de_modulo_con_carpeta():
+    assert M.module_name("Backlog - TQ", "Mejoras MANUFACTURA 2026") == "Backlog - TQ / Mejoras MANUFACTURA 2026"
+    assert M.module_name(M.LOOSE, "Backlog Aurora") == "Backlog Aurora"

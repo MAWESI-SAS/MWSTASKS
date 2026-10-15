@@ -141,9 +141,9 @@ class Migration:
     def cycles_and_modules(self):
         cycles = {c["external_id"]: c for c in self.pl.all(self.pl.proj(self.pid, "cycles/"))
                   if c.get("external_source") == M.SOURCE and c.get("external_id")}
-        modules = self._by_external(self.pl.proj(self.pid, "modules/"))
+        modules = {m["external_id"]: m for m in self.pl.all(self.pl.proj(self.pid, "modules/"))
+                   if m.get("external_source") == M.SOURCE and m.get("external_id")}
         self.cycle_by_list, self.module_by_list, self.cycle_info = {}, {}, {}
-        names = collections.Counter(l["name"] for l in self.lists)
         for lst in self.lists:
             ext = f"list:{lst['id']}"
             if M.is_sprint(lst["name"]):
@@ -160,12 +160,15 @@ class Migration:
                                             "start": M.ms_to_date(lst.get("start_date")),
                                             "end": M.ms_to_date(lst.get("due_date"))}
             else:
+                name = M.module_name(lst["folder"], lst["name"])
                 if ext not in modules:
-                    name = lst["name"] if names[lst["name"]] == 1 else f"{lst['folder']} / {lst['name']}"
                     modules[ext] = self.pl.write("POST", self.pl.proj(self.pid, "modules/"), {
-                        "name": name[:255], "external_source": M.SOURCE, "external_id": ext})["id"]
+                        "name": name, "external_source": M.SOURCE, "external_id": ext})
                     self.stats["módulos"] += 1
-                self.module_by_list[lst["id"]] = modules[ext]
+                elif modules[ext].get("name") != name:  # corridas anteriores usaban solo el nombre de la lista
+                    self.pl.write("PATCH", self.pl.proj(self.pid, f"modules/{modules[ext]['id']}/"), {"name": name})
+                    self.stats["módulos renombrados"] += 1
+                self.module_by_list[lst["id"]] = modules[ext]["id"]
 
     def properties(self):
         existing = {p["external_id"]: p for p in self.pl.get(self.pl.mawesi(self.pid, "properties/"))

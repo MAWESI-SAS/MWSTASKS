@@ -170,6 +170,12 @@ def estimate_hours(ms):
 LOOSE = "(sin carpeta)"
 
 
+def module_name(folder: str, list_name: str) -> str:
+    """Plane no tiene carpetas: el módulo lleva "Carpeta / Lista" para conservar la estructura de ClickUp."""
+    name = list_name if folder == LOOSE else f"{folder} / {list_name}"
+    return name.strip()[:255]
+
+
 def attachment_mime(a: dict) -> str:
     """Tipo MIME del adjunto. Si falta, binario genérico (Plane lo acepta)."""
     m = (a.get("mimetype") or "").split(";")[0].strip().lower()
