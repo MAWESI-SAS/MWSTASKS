@@ -72,3 +72,37 @@ Plane limita los API tokens a 60 pedidos/minuto. En local `dev/full.env` lo sube
 ```bash
 uv run --with-requirements tools/migrate_clickup/requirements.txt --with pytest python -m pytest -q tools/migrate_clickup/tests
 ```
+
+## Copia incremental hasta el corte (`sync.py`)
+
+Después de la migración completa, `sync.py` mantiene MWSTASKS al día con ClickUp. Es para el período en que la gente
+sigue trabajando en ClickUp.
+
+- **Una sola dirección:** ClickUp → MWSTASKS. Lo que se edite en MWSTASKS en una tarea que cambió en ClickUp se pisa.
+- **Solo lo cambiado:** un único pedido trae las tareas cambiadas desde la corrida anterior (`date_updated_gt`), para todos los espacios.
+- **Por cada tarea cambiada:**
+  - si es nueva, la crea;
+  - si ya existe, actualiza solo los campos que cambiaron (título, estado, prioridad, responsables, etiquetas, fechas, descripción y padre);
+  - si cambió de lista, la saca del módulo o ciclo viejo y la pone en el nuevo;
+  - agrega comentarios, adjuntos y valores de campos nuevos.
+- **Horas:** revisa una ventana de `--time-days` días (por defecto 45). ClickUp no marca la tarea como cambiada al cargar horas.
+- **`--prune`** (de noche): las tareas que ya no existen en ClickUp (borradas, archivadas o movidas fuera del alcance) reciben la etiqueta "Borrada en ClickUp". No se borra nada.
+- **No hace:** editar ni borrar horas ya copiadas, y editar comentarios ya copiados.
+- **Estado:** `state.json` guarda la hora de la última corrida, la lista y la descripción de cada tarea, y las horas ya copiadas. Si un proyecto falla, la próxima corrida vuelve a pedir desde el mismo punto.
+- **Límite de la API:** pide a MWSTASKS cada 1,05 s, debajo de los 60/minute de `API_KEY_RATE_LIMIT`.
+
+```json
+// sync.json
+{"workspace": "mawesi", "projects": [
+  {"identifier": "CM", "space": "90144438515", "folders": ["Product", "Sprints", "Documentation"]},
+  {"identifier": "TQ", "space": "49142129"}
+]}
+```
+
+```bash
+docker build -t mwstasks-clickup-sync:local tools/migrate_clickup
+docker run --rm --env-file sync.env -v "$PWD/data:/data" mwstasks-clickup-sync:local \
+  --config /data/sync.json --state /data/state.json --url https://tasks.mawesi.online --since "2026-10-14 00:00"
+```
+
+La primera corrida necesita `--since`, que marca desde cuándo buscar cambios. Las siguientes lo toman de `state.json`.

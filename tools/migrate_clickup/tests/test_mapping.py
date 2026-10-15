@@ -85,3 +85,24 @@ def test_relaciones_y_textos_largos():
 def test_nombre_de_modulo_con_carpeta():
     assert M.module_name("Backlog - TQ", "Mejoras MANUFACTURA 2026") == "Backlog - TQ / Mejoras MANUFACTURA 2026"
     assert M.module_name(M.LOOSE, "Backlog Aurora") == "Backlog Aurora"
+
+
+def test_alcance_de_la_copia_incremental():
+    t = {"space": {"id": "90144438515"}, "folder": {"name": "Prospección"}}
+    assert M.in_scope(t, 90144438515, set()) and M.in_scope(t, "90144438515", {"Prospección"})
+    assert not M.in_scope(t, "90144438515", {"Product", "Sprints"})
+    assert not M.in_scope(t, "49142129", set())
+    suelta = {"space": {"id": "1"}, "folder": {"id": "9", "name": "hidden", "hidden": True}}
+    assert M.folder_of(suelta) == M.LOOSE and M.in_scope(suelta, "1", {M.LOOSE})
+
+
+def test_solo_cambios_reales():
+    cur = {"name": "A", "state": "s1", "priority": "low", "start_date": None, "target_date": "2026-10-01",
+           "assignees": ["u2", "u1"], "labels": []}
+    same = {**cur, "assignees": ["u1", "u2"], "description_html": "<p>x</p>"}
+    assert M.issue_changes(cur, same, False) == {}
+    moved = {**same, "state": "s2", "labels": ["l1"]}
+    assert M.issue_changes(cur, moved, False) == {"state": "s2", "labels": ["l1"]}
+    d = M.issue_changes(cur, same, True)
+    assert d == {"description_html": "<p>x</p>", "description_binary": None}
+    assert M.text_hash("a") == M.text_hash("a") != M.text_hash("b")

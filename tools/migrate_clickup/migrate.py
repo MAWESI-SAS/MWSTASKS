@@ -31,6 +31,7 @@ class Migration:
         self.stats = collections.Counter()
         self.warnings = collections.Counter()
         self.samples = collections.defaultdict(list)
+        self.read_tasks = True  # la copia incremental trae las tareas por otro lado
 
     def warn(self, kind, detail=""):
         self.warnings[kind] += 1
@@ -56,8 +57,9 @@ class Migration:
                 self.lists.append(lst)
                 for fd in self.cu.custom_fields(lst["id"]):
                     self.fields.setdefault(fd["id"], fd)
-                for t in self.cu.tasks(lst["id"]):
-                    self.tasks[t["id"]] = t
+                if self.read_tasks:
+                    for t in self.cu.tasks(lst["id"]):
+                        self.tasks[t["id"]] = t
         self.log(f"ClickUp: {len(self.lists)} listas, {len(self.tasks)} tareas, {len(self.fields)} campos")
 
     # ---------- 2. preparar MWSTASKS ----------
@@ -217,37 +219,46 @@ class Migration:
             if t["id"] in existing:
                 self.issue_by_task[t["id"]] = existing[t["id"]]
                 continue
-            assignees = [self.cu_user.get(a["id"]) for a in t.get("assignees", [])]
-            start, due = M.ms_to_date(t.get("start_date")), M.ms_to_date(t.get("due_date"))
-            if start and due and start > due:
-                self.warn("fecha inicio > fecha fin (se descarta el inicio)", t["id"])
-                start = None
-            body = {
-                "name": (t["name"] or "(sin título)")[:255],
-                "description_html": M.description_html(t),
-                "state": self.state_by_name.get(t["status"]["status"].lower()),
-                "priority": M.priority(t),
-                "assignees": [a for a in assignees if a],
-                "labels": [self.label_by_name[tag["name"].lower()] for tag in t.get("tags", [])],
-                "start_date": start, "target_date": due,
-                "external_source": M.SOURCE, "external_id": t["id"],
-                "created_at": M.ms_to_iso(t.get("date_created")),
-                "created_by": self.cu_user.get((t.get("creator") or {}).get("id")) or self.me,
-            }
-            if len(assignees) != len(body["assignees"]):
-                self.warn("asignado sin cuenta en MWSTASKS", t["id"])
-            try:
-                issue = self.pl.write("POST", self.pl.proj(self.pid, "issues/"), body)
-                self.issue_by_task[t["id"]] = issue["id"]
-                self.new_issues.add(t["id"])
-                self.stats["tareas"] += 1
-            except PlaneError as e:
-                if e.code == 409 and e.json().get("id"):
-                    self.issue_by_task[t["id"]] = e.json()["id"]
-                else:
-                    self.warn("tarea no creada", f"{t['id']}: {e}")
+            self.create_issue(t)
             if n % 200 == 0:
                 self.log(f"  tareas {n}/{len(ordered)}")
+        self.link_parents(ordered)
+
+    def issue_body(self, t):
+        assignees = [self.cu_user.get(a["id"]) for a in t.get("assignees", [])]
+        start, due = M.ms_to_date(t.get("start_date")), M.ms_to_date(t.get("due_date"))
+        if start and due and start > due:
+            self.warn("fecha inicio > fecha fin (se descarta el inicio)", t["id"])
+            start = None
+        body = {
+            "name": (t["name"] or "(sin título)")[:255],
+            "description_html": M.description_html(t),
+            "state": self.state_by_name.get(t["status"]["status"].lower()),
+            "priority": M.priority(t),
+            "assignees": [a for a in assignees if a],
+            "labels": [self.label_by_name[tag["name"].lower()] for tag in t.get("tags", [])],
+            "start_date": start, "target_date": due,
+            "external_source": M.SOURCE, "external_id": t["id"],
+            "created_at": M.ms_to_iso(t.get("date_created")),
+            "created_by": self.cu_user.get((t.get("creator") or {}).get("id")) or self.me,
+        }
+        if len(assignees) != len(body["assignees"]):
+            self.warn("asignado sin cuenta en MWSTASKS", t["id"])
+        return body
+
+    def create_issue(self, t):
+        try:
+            issue = self.pl.write("POST", self.pl.proj(self.pid, "issues/"), self.issue_body(t))
+            self.issue_by_task[t["id"]] = issue["id"]
+            self.new_issues.add(t["id"])
+            self.stats["tareas"] += 1
+        except PlaneError as e:
+            if e.code == 409 and e.json().get("id"):
+                self.issue_by_task[t["id"]] = e.json()["id"]
+            else:
+                self.warn("tarea no creada", f"{t['id']}: {e}")
+
+    def link_parents(self, ordered):
         # Subtareas: el padre se pone después, cuando ya existen todas. Revisa todas (no solo las nuevas)
         # para completar una corrida anterior que se cortó.
         for t in ordered:
@@ -273,6 +284,8 @@ class Migration:
         """Ciclos y módulos. Revisa todas las tareas y agrega solo las que faltan (idempotente)."""
         by_cycle, by_module = collections.defaultdict(list), collections.defaultdict(list)
         for tid, iid in self.issue_by_task.items():
+            if tid not in self.tasks:  # padre buscado aparte en la copia incremental
+                continue
             cycle, module = self.home_cycle_and_module(self.tasks[tid])
             if cycle:
                 by_cycle[cycle].append(iid)
@@ -294,6 +307,8 @@ class Migration:
     def values(self):
         # Para todas las tareas: MWSTASKS ignora los valores que no cambian, así que repetir es seguro.
         for tid in self.issue_by_task:
+            if tid not in self.tasks:
+                continue
             t, values = self.tasks[tid], {}
             for cf in t.get("custom_fields", []):
                 pid = self.prop_by_field.get(cf["id"])
@@ -325,6 +340,8 @@ class Migration:
     def comments(self):
         names = {}
         for n, tid in enumerate(sorted(self.issue_by_task), 1):
+            if n < self.a.comments_start:  # retomar una corrida cortada (el orden es siempre el mismo)
+                continue
             iid = self.issue_by_task[tid]
             for c in self.cu.comments(tid):
                 for item in [c] + (self.cu.get(f"/comment/{c['id']}/reply").get("comments", []) if int(c.get("reply_count") or 0) else []):
@@ -334,16 +351,21 @@ class Migration:
                             "external_source": M.SOURCE, "external_id": str(item["id"]),
                             "created_at": M.ms_to_iso(item.get("date")),
                             "created_by": self.user_by_email.get((user.get("email") or "").lower()) or self.me}
-                    try:
-                        self.pl.write("POST", self.pl.proj(self.pid, f"issues/{iid}/comments/"), body)
-                        self.stats["comentarios"] += 1
-                    except PlaneError as e:
-                        if e.code != 409:
-                            self.warn("comentario no creado", f"{tid}: {e}")
+                    self.post_comment(iid, body)
             if not self.a.skip_attachments:
                 self.attachments(tid, iid)
             if n % 250 == 0:
                 self.log(f"  comentarios y adjuntos: {n}/{len(self.issue_by_task)} tareas revisadas")
+
+    def post_comment(self, iid, body):
+        try:
+            self.pl.write("POST", self.pl.proj(self.pid, f"issues/{iid}/comments/"), body)
+            self.stats["comentarios"] += 1
+            return True
+        except PlaneError as e:
+            if e.code != 409:
+                self.warn("comentario no creado", f"{iid}: {e}")
+            return False
 
     def attachments(self, tid, iid):
         files = self.cu.task(tid).get("attachments") or []
@@ -400,20 +422,25 @@ class Migration:
             for e in self.cu.get(f"/team/{team}/time_entries", start_date=start, end_date=end, space_id=self.a.space,
                                  assignee=",".join(map(str, ids[k:k + 10])), include_task_tags="false").get("data", []):
                 entries[e["id"]] = e
-        entries = list(entries.values())
+        entries = [e for e in entries.values() if not self.skip_entry(e)]
         by_issue = collections.defaultdict(list)
+        self.copied_entries = []
         for e in entries:
             tid = (e.get("task") or {}).get("id")
-            if tid in self.issue_by_task:
-                by_issue[self.issue_by_task[tid]].append(e)
+            iid = self.issue_by_task.get(tid) or (self.route_task(tid) if tid else None)
+            if iid:
+                by_issue[iid].append(e)
             else:
                 self.warn("hora fuera del alcance migrado", e.get("id"))
+                self.copied_entries.append(e["id"])  # no se vuelve a revisar
         self.stats["horas leídas"] = len(entries)
         for iid, rows in by_issue.items():
             done = {w["description"].split("]")[0] + "]" for w in self.pl.get(self.pl.mawesi(self.pid, f"issues/{iid}/worklogs/")) if (w.get("description") or "").startswith("[clickup:")}
             for e in rows:
                 email = ((e.get("user") or {}).get("email") or "").lower()
                 member = self.user_by_email.get(email)
+                if int(e["duration"]) < 0:  # cronómetro corriendo: se copia cuando se detenga
+                    continue
                 minutes = max(1, round(int(e["duration"]) / 60000))
                 for k, chunk in enumerate(M.split_minutes(minutes)):
                     tag = f"[clickup:{e['id']}{'#' + str(k) if k else ''}]"
@@ -432,13 +459,30 @@ class Migration:
                         self.stats["minutos migrados"] += chunk
                     except PlaneError as err:
                         self.warn("hora no migrada", f"{e['id']}: {err}")
+                        break
+                else:
+                    self.copied_entries.append(e["id"])
 
-    def run(self):
-        self.read_clickup()
+    # Ganchos para la copia incremental (sync.py): la migración completa no salta ni busca nada aparte.
+    def skip_entry(self, entry):
+        return False
+
+    def route_task(self, task_id):
+        return None
+
+    def setup(self):
         self.me = self.pl.get("/api/v1/users/me/")["id"]
         # Nunca más grande que lo que acepta la instancia: si no, el proxy corta la subida.
         self.file_limit = min(self.a.max_file_mb * 1024 * 1024, self.pl.file_size_limit())
         self.log(f"Límite de adjuntos: {self.file_limit // 1048576} MB")
+
+    def report(self):
+        return {"proyecto": self.pid, "creado": dict(self.stats), "avisos": dict(self.warnings),
+                "ejemplos": dict(self.samples), "llamadas": {"clickup": self.cu.calls, "mwstasks": self.pl.calls}}
+
+    def run(self):
+        self.read_clickup()
+        self.setup()
         self.people()
         self.project()
         self.states(); self.labels(); self.cycles_and_modules(); self.properties()
@@ -449,8 +493,7 @@ class Migration:
             self.log("Copiando comentarios y adjuntos…"); self.comments()
         if not self.a.skip_time:
             self.log("Copiando horas…"); self.worklogs()
-        report = {"proyecto": self.pid, "creado": dict(self.stats), "avisos": dict(self.warnings),
-                  "ejemplos": dict(self.samples), "llamadas": {"clickup": self.cu.calls, "mwstasks": self.pl.calls}}
+        report = self.report()
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return report
 
@@ -470,6 +513,7 @@ def main():
     ap.add_argument("--skip-attachments", action="store_true")
     ap.add_argument("--max-file-mb", type=int, default=20, help="adjuntos más grandes se saltan (igual que FILE_SIZE_LIMIT)")
     ap.add_argument("--skip-time", action="store_true")
+    ap.add_argument("--comments-start", type=int, default=1, help="retomar comentarios y adjuntos desde la tarea N")
     a = ap.parse_args()
     cu = ClickUp(os.environ["CLICKUP_TOKEN"])
     pl = Plane(a.url, os.environ["MWSTASKS_TOKEN"], a.workspace)

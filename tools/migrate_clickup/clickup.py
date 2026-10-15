@@ -34,6 +34,9 @@ class ClickUp:
                     time.sleep(min(60, 5 * (attempt + 1)))
                     continue
                 raise RuntimeError(f"ClickUp {e.code} en {path}: {e.read()[:200]!r}") from None
+            except (urllib.error.URLError, OSError):  # cortes de red ("Connection reset by peer", timeouts)
+                time.sleep(min(60, 5 * (attempt + 1)))
+                continue
         raise RuntimeError(f"ClickUp no respondió en {path}")
 
     # --- estructura ---
@@ -55,6 +58,19 @@ class ClickUp:
         while True:
             data = self.get(f"/list/{list_id}/task", page=page, include_closed="true", subtasks="true",
                             include_markdown_description="true", archived="false")
+            yield from data.get("tasks", [])
+            if data.get("last_page", True) or not data.get("tasks"):
+                return
+            page += 1
+
+    def team_tasks(self, team_id, space_ids, updated_gt=None):
+        """Tareas de varios espacios a la vez (abiertas y cerradas, con subtareas), opcionalmente solo las cambiadas
+        después de updated_gt (ms). Trae list, folder y space de cada tarea."""
+        page = 0
+        while True:
+            data = self.get(f"/team/{team_id}/task", page=page, include_closed="true", subtasks="true",
+                            include_markdown_description="true", date_updated_gt=updated_gt,
+                            **{"space_ids[]": list(space_ids)})
             yield from data.get("tasks", [])
             if data.get("last_page", True) or not data.get("tasks"):
                 return

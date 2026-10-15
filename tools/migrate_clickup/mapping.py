@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Reglas puras ClickUp -> MWSTASKS. Sin red: se prueban solas (tests/test_mapping.py)."""
 import datetime
+import hashlib
 import html
 import re
 from zoneinfo import ZoneInfo
@@ -194,3 +195,38 @@ def split_minutes(total: int, cap: int = 1440):
         out.append(min(cap, total))
         total -= cap
     return out
+
+
+# ---------- copia incremental ----------
+COMPARED = ("name", "state", "priority", "start_date", "target_date")
+SETS = ("assignees", "labels")
+
+
+def folder_of(task) -> str:
+    """Nombre de la carpeta de una tarea del listado de equipo. Las listas sueltas vienen con folder.hidden=true."""
+    folder = task.get("folder") or {}
+    return LOOSE if folder.get("hidden") or not folder.get("name") else folder["name"]
+
+
+def in_scope(task, space_id, folders) -> bool:
+    """¿La tarea pertenece a este proyecto? folders vacío = todo el espacio."""
+    if str((task.get("space") or {}).get("id")) != str(space_id):
+        return False
+    return not folders or folder_of(task) in folders
+
+
+def text_hash(text: str) -> str:
+    return hashlib.sha256((text or "").encode()).hexdigest()[:16]
+
+
+def issue_changes(current: dict, wanted: dict, description_changed: bool) -> dict:
+    """Campos a mandar en el PATCH: solo los que cambiaron. Plane registra un historial por cada campo que recibe."""
+    diff = {k: wanted.get(k) for k in COMPARED if current.get(k) != wanted.get(k)}
+    for k in SETS:
+        if set(current.get(k) or []) != set(wanted.get(k) or []):
+            diff[k] = wanted.get(k) or []
+    if description_changed:
+        # Sin binario: el editor de Plane rearma el documento desde el HTML nuevo (si no, mostraría el viejo).
+        diff["description_html"] = wanted["description_html"]
+        diff["description_binary"] = None
+    return diff

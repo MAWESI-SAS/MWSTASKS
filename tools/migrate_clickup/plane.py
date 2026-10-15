@@ -22,9 +22,11 @@ class PlaneError(RuntimeError):
 
 
 class Plane:
-    def __init__(self, base_url: str, token: str, slug: str, dry_run: bool = False):
+    def __init__(self, base_url: str, token: str, slug: str, dry_run: bool = False, min_interval: float = 0.0):
         self.base = base_url.rstrip("/")
         self.token, self.slug, self.dry_run = token, slug, dry_run
+        self.min_interval = min_interval  # p. ej. 1.05 s para quedar debajo de API_KEY_RATE_LIMIT=60/minute
+        self._last = 0.0
         self.calls = 0
 
     def _req(self, method, path, body=None, **params):
@@ -34,6 +36,10 @@ class Plane:
         req = urllib.request.Request(url, data=data, method=method,
                                      headers={"X-API-Key": self.token, "Content-Type": "application/json"})
         for attempt in range(6):
+            wait = self.min_interval - (time.monotonic() - self._last)
+            if wait > 0:
+                time.sleep(wait)
+            self._last = time.monotonic()
             self.calls += 1
             try:
                 with urllib.request.urlopen(req, timeout=120) as r:
@@ -44,6 +50,12 @@ class Plane:
                     time.sleep(min(60, 3 * (attempt + 1)))
                     continue
                 raise PlaneError(e.code, path, e.read().decode(errors="replace")) from None
+            except (urllib.error.URLError, OSError) as e:
+                # Corte de red: solo se reintentan las lecturas (una escritura repetida podría duplicar horas).
+                if method == "GET" and attempt < 5:
+                    time.sleep(min(60, 3 * (attempt + 1)))
+                    continue
+                raise PlaneError(0, path, str(e)) from None
         raise PlaneError(0, path, "sin respuesta")
 
     def get(self, path, **params):
