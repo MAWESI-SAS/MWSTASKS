@@ -2,7 +2,8 @@
  * Copyright (c) 2026-present MAWESI S.A.S.
  * SPDX-License-Identifier: AGPL-3.0-only
  */
-import { API_BASE_URL, APIService } from "../plane";
+import { API_BASE_URL, APIService, IssueService } from "../plane";
+import type { TIssuePriorities } from "../plane";
 
 export type TPropValue = string | number | boolean | string[] | null;
 
@@ -11,7 +12,7 @@ export type TTableRow = {
   sequence_id: number;
   name: string;
   state_id: string | null;
-  priority: string;
+  priority: TIssuePriorities;
   start_date: string | null;
   target_date: string | null;
   parent_id: string | null;
@@ -47,3 +48,6 @@ class TableService extends APIService {
 }
 
 export const tableService = new TableService();
+
+/** Cambios de la Tabla: por la API de Plane (historial, avisos y reglas igual que en el detalle). */
+export const issueService = new IssueService();

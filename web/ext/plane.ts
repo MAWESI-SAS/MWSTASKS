@@ -21,7 +21,7 @@ export {
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
 } from "@plane/constants";
 export { EUserProjectRoles, EUserWorkspaceRoles } from "@plane/types";
-export type { TOAuthConfigs, TProjectSettingsItem } from "@plane/types";
+export type { TIssuePriorities, TOAuthConfigs, TProjectSettingsItem } from "@plane/types";
 export { APIService } from "@/services/api.service";
 export { useSearchParams } from "next/navigation";
 export { useUser, useUserPermissions } from "@/hooks/store/user";
@@ -29,6 +29,11 @@ export { useMember } from "@/hooks/store/use-member";
 export { useIssueDetail } from "@/hooks/store/use-issue-detail";
 export { ButtonAvatars } from "@/components/dropdowns/member/avatar";
 export { MemberDropdown } from "@/components/dropdowns/member/dropdown";
+export { StateDropdown } from "@/components/dropdowns/state/dropdown";
+export { PriorityDropdown } from "@/components/dropdowns/priority";
+export { DateDropdown } from "@/components/dropdowns/date";
+export { IssueService } from "@/services/issue/issue.service";
+export { renderFormattedPayloadDate } from "@plane/utils";
 export { IssueActivityBlockComponent } from "@/components/issues/issue-detail/issue-activity/activity/actions";
 export { useProject } from "@/hooks/store/use-project";
 export { useModule } from "@/hooks/store/use-module";
