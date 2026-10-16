@@ -136,3 +136,17 @@ docker exec -i -e SLUG=mawesi -e CLOSED=/tmp/closed.json <api> python manage.py 
 ```
 
 Idempotente. Lo que cierra la copia incremental queda con la hora de la copia (hasta 15 min de diferencia).
+
+## Respaldo completo de ClickUp (`backup.py`)
+
+Antes de cancelar ClickUp: todo a disco, solo leyendo. Incluye los espacios archivados, los comentarios con todas sus
+páginas, los adjuntos sin límite de tamaño, las horas y los Docs. Se puede cortar y volver a correr (lo que ya está en
+disco no se vuelve a pedir). Detalle de las carpetas en el encabezado de `backup.py`.
+
+```bash
+docker build -t mwstasks-clickup-sync:local tools/migrate_clickup
+docker run -d --name clickup-backup --env-file sync.env -v /home/mauricio/backups/clickup-AAAA-MM-DD:/out \
+  --entrypoint python mwstasks-clickup-sync:local -m tools.migrate_clickup.backup --out /out
+```
+
+Para buscar algo: abrir `index.csv` con Excel (una fila por tarea, con la ruta de su JSON y sus archivos).
