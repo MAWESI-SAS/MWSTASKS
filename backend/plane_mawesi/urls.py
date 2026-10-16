@@ -7,6 +7,7 @@ from plane.urls import urlpatterns as plane_urlpatterns
 
 from plane_mawesi.auth import views as auth
 from plane_mawesi.views import properties as pr
+from plane_mawesi.views import recurrence as rc
 from plane_mawesi.views import sla as sl
 from plane_mawesi.views import table as tb
 from plane_mawesi.views import templates as tp
@@ -56,6 +57,7 @@ urlpatterns = [
     path(f"api/mawesi/{PROJECT}/templates/", tp.TemplatesEndpoint.as_view(), name="mawesi-templates"),
     path(f"api/mawesi/{PROJECT}/templates/<uuid:template_id>/", tp.TemplateDetailEndpoint.as_view(), name="mawesi-template"),
     path(f"api/mawesi/{PROJECT}/templates/<uuid:template_id>/apply/", tp.ApplyTemplateEndpoint.as_view(), name="mawesi-template-apply"),
+    path(f"api/mawesi/{ISSUE}/recurrence/", rc.IssueRecurrenceEndpoint.as_view(), name="mawesi-recurrence"),
     # Cronómetro: solo la web (lo usa una persona desde el navegador).
     path("api/mawesi/workspaces/<str:slug>/timer/", tm.CurrentTimerEndpoint.as_view(), name="mawesi-timer"),
     path("api/mawesi/workspaces/<str:slug>/timer/stop/", tm.StopTimerEndpoint.as_view(), name="mawesi-timer-stop"),

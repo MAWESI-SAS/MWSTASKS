@@ -58,6 +58,10 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
   `issue_activity` (al hacer commit), igual que crearlas a mano. Las subtareas se crean al revés porque Plane las lista
   de la más nueva a la más vieja. Se configuran en `…/settings/projects/:projectId/mawesi-plantillas`; se usan desde el
   menú "⋯" de una lista del árbol (tarea nueva) y con el botón del panel del detalle (subtareas para una tarea existente).
+- Tareas que se repiten (`plane_mawesi/recurrence.py`, `views/recurrence.py`, `tasks.py`, tabla `mawesi_recurrences`):
+  la regla apunta a la ocurrencia vigente; `run_recurrences` (Celery, cada minuto, horario cargado en
+  `django_celery_beat` por la migración `0006`) crea la siguiente al completarla o al llegar su vencimiento, con
+  `create_issue` de plantillas y `crum.impersonate` del autor de la regla. Panel "Repetir" en el peek y el detalle.
 - `ext/nav.ts` agrega "Campos", "SLA" y "Plantillas" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
   `PROJECT_SETTINGS_ICONS` (objetos exportados de Plane, mutables).
 - `ext/nav.ts` agrega "Horas" a `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (arreglo exportado de Plane). Aparece

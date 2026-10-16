@@ -181,3 +181,35 @@ class TaskTemplate(ProjectBaseModel):
 
     def __str__(self):
         return self.name
+
+
+class RecurrenceFrequency(models.TextChoices):
+    DAILY = "daily", "Cada día"
+    WEEKDAYS = "weekdays", "Cada día hábil"
+    WEEKLY = "weekly", "Cada semana"
+    MONTHLY = "monthly", "Cada mes"
+
+
+class RecurrenceTrigger(models.TextChoices):
+    COMPLETE = "complete", "Al completarla"
+    SCHEDULE = "schedule", "En la fecha de vencimiento"
+
+
+class Recurrence(ProjectBaseModel):
+    """Tarea que se repite (como en ClickUp). `issue` es la ocurrencia vigente: cuando se completa (o llega su
+    vencimiento, según `trigger`) se crea la siguiente y la regla pasa a ella. Lo corre plane_mawesi/tasks.py."""
+
+    issue = models.ForeignKey("db.Issue", on_delete=models.CASCADE, related_name="mawesi_recurrences")
+    frequency = models.CharField(max_length=16, choices=RecurrenceFrequency.choices)
+    interval = models.PositiveSmallIntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(30)])
+    trigger = models.CharField(max_length=16, choices=RecurrenceTrigger.choices, default=RecurrenceTrigger.COMPLETE)
+    occurrences = models.PositiveIntegerField(default=0)  # cuántas ya creó
+
+    class Meta:
+        db_table = "mawesi_recurrences"
+        constraints = [
+            models.UniqueConstraint(fields=["issue"], condition=models.Q(deleted_at__isnull=True), name="mawesi_recurrence_one_per_issue"),
+        ]
+
+    def __str__(self):
+        return f"{self.frequency}×{self.interval} {self.issue_id}"

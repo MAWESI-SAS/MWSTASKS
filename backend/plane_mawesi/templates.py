@@ -81,12 +81,16 @@ def parse_template(data, slug, project_id):
     return fields, None
 
 
-def _create(*, project, data, user, request_host):
+def create_issue(*, project, data, user, request_host):
+    """Crea un work item como la API de Plane: su serializer (número, estado por defecto, responsables, etiquetas)
+    y su tarea de historial, después del commit."""
     serializer = IssueCreateSerializer(data=data, context={
         "project_id": project.id, "workspace_id": project.workspace_id, "default_assignee_id": project.default_assignee_id,
     })
     serializer.is_valid(raise_exception=True)
     issue = serializer.save()
+    if user is None:  # sin autor (p. ej. tarea repetida de alguien borrado): sin historial de creación
+        return issue
     payload = json.dumps(data, cls=DjangoJSONEncoder)
     # Después del commit: si algo falla en el medio no queda historial de tareas que no existen.
     transaction.on_commit(lambda: issue_activity.delay(
@@ -116,7 +120,7 @@ def apply(template, *, user, request_host, parent=None, name=None, module_id=Non
     Las subtareas quedan en las mismas listas que la tarea principal. Devuelve (tarea principal, subtareas)."""
     project = Project.objects.get(pk=template.project_id)
     if parent is None:
-        parent = _create(project=project, user=user, request_host=request_host, data={
+        parent = create_issue(project=project, user=user, request_host=request_host, data={
             "name": name[:ISSUE_NAME_MAX], "priority": template.priority, "assignee_ids": template.assignee_ids,
             "description_html": checklist_html(template.checklist),
         })
@@ -127,7 +131,7 @@ def apply(template, *, user, request_host, parent=None, name=None, module_id=Non
     created = []
     # Plane lista las subtareas de la más nueva a la más vieja: se crean al revés para leerlas en el orden de la plantilla.
     for sub in reversed(template.subtasks):
-        issue = _create(project=project, user=user, request_host=request_host, data={
+        issue = create_issue(project=project, user=user, request_host=request_host, data={
             "name": subtask_name(template, sub, parent.name), "priority": sub.get("priority") or "none",
             "parent_id": str(parent.id), "description_html": checklist_html(sub.get("checklist")),
         })
