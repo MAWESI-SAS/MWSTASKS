@@ -123,3 +123,35 @@ class PropertyValue(ProjectBaseModel):
             ),
         ]
         indexes = [models.Index(fields=["project", "property"], name="mawesi_value_proj_prop_idx")]
+
+
+def default_sla_hours():
+    return {"urgent": 4, "high": 8, "medium": 16, "low": 40, "none": 40}
+
+
+def default_workdays():
+    return [0, 1, 2, 3, 4]
+
+
+class SlaPolicy(ProjectBaseModel):
+    """Plazo de resolución por prioridad, en horas hábiles. Una por proyecto; si tiene módulo, aplica solo a sus
+    work items (p. ej. "Soporte - TQ / Incidentes"). El cálculo vive en plane_mawesi/sla.py."""
+
+    module = models.ForeignKey("db.Module", on_delete=models.SET_NULL, null=True, blank=True, related_name="mawesi_sla")
+    hours = models.JSONField(default=default_sla_hours)  # {"urgent": 4, "high": 8, ...}
+    timezone = models.CharField(max_length=64, default="America/Bogota")
+    work_start = models.TimeField(default="08:00")
+    work_end = models.TimeField(default="18:00")
+    workdays = models.JSONField(default=default_workdays)  # lunes=0
+    colombia_holidays = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "mawesi_sla_policies"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project"], condition=models.Q(deleted_at__isnull=True), name="mawesi_sla_one_per_project"
+            ),
+        ]
+
+    def __str__(self):
+        return f"SLA {self.project_id}"

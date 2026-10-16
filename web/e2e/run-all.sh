@@ -6,7 +6,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 OUT="${1:?carpeta de capturas}"
 mkdir -p "$OUT"
 export RUN="${RUN:-$(date +%s)}"
-for t in smoke worklog report fields theme auth clickup folders wiki profile; do
+for t in smoke worklog report fields theme auth clickup folders wiki sla profile; do
   echo "== $t (RUN=$RUN)"
   python3 "$DIR/$t.py" "$OUT"
 done

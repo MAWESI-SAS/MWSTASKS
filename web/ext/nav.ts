@@ -6,7 +6,7 @@
  * (WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS) al cargar la app, sin editar Plane.
  * labelTranslationKey no existe en el i18n de Plane: i18next muestra la clave tal cual ("Horas").
  */
-import { ListChecks } from "lucide-react";
+import { AlarmClock, ListChecks } from "lucide-react";
 import {
   EUserProjectRoles,
   EUserWorkspaceRoles,
@@ -46,19 +46,27 @@ export const registerWikiNav = () => {
 };
 
 export const MAWESI_FIELDS_KEY = "mawesi_fields";
+export const MAWESI_SLA_KEY = "mawesi_sla";
 
-/** "Campos" en Configuración del proyecto → Estructura de trabajo (objetos exportados de Plane, mutables). */
+/** Ítems propios en Configuración del proyecto → Estructura de trabajo (objetos exportados de Plane, mutables). */
+const SETTINGS: Array<{ key: string; label: string; slug: string; icon: unknown }> = [
+  { key: MAWESI_FIELDS_KEY, label: "Campos", slug: "mawesi-campos", icon: ListChecks },
+  { key: MAWESI_SLA_KEY, label: "SLA", slug: "mawesi-sla", icon: AlarmClock },
+];
+
 export const registerProjectSettings = () => {
   const group = GROUPED_PROJECT_SETTINGS[PROJECT_SETTINGS_CATEGORY.WORK_STRUCTURE];
-  if (group.some((i) => (i.key as string) === MAWESI_FIELDS_KEY)) return;
-  const item = {
-    key: MAWESI_FIELDS_KEY,
-    i18n_label: "Campos",
-    href: "/mawesi-campos",
-    access: [EUserProjectRoles.ADMIN, EUserProjectRoles.MEMBER],
-    highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/mawesi-campos/`,
-  } as unknown as TProjectSettingsItem;
-  group.push(item);
-  PROJECT_SETTINGS_FLAT_MAP.push(item);
-  (PROJECT_SETTINGS_ICONS as Record<string, unknown>)[MAWESI_FIELDS_KEY] = ListChecks;
+  for (const s of SETTINGS) {
+    if (group.some((i) => (i.key as string) === s.key)) continue;
+    const item = {
+      key: s.key,
+      i18n_label: s.label,
+      href: `/${s.slug}`,
+      access: [EUserProjectRoles.ADMIN, EUserProjectRoles.MEMBER],
+      highlight: (pathname: string, baseUrl: string) => pathname === `${baseUrl}/${s.slug}/`,
+    } as unknown as TProjectSettingsItem;
+    group.push(item);
+    PROJECT_SETTINGS_FLAT_MAP.push(item);
+    (PROJECT_SETTINGS_ICONS as Record<string, unknown>)[s.key] = s.icon;
+  }
 };

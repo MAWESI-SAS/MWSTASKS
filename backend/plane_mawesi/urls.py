@@ -7,6 +7,7 @@ from plane.urls import urlpatterns as plane_urlpatterns
 
 from plane_mawesi.auth import views as auth
 from plane_mawesi.views import properties as pr
+from plane_mawesi.views import sla as sl
 from plane_mawesi.views import table as tb
 from plane_mawesi.views import timers as tm
 from plane_mawesi.views import wiki as wk
@@ -46,6 +47,10 @@ urlpatterns = [
     *_routes("api/v1/mawesi/", w.IssueWorklogsKeyEndpoint, w.WorklogDetailKeyEndpoint, w.WorklogTotalsKeyEndpoint, w.WorklogReportKeyEndpoint, "-key"),
     path(f"api/mawesi/{PROJECT}/table/", tb.ProjectTableEndpoint.as_view(), name="mawesi-table"),
     path("api/mawesi/workspaces/<str:slug>/wiki/", wk.WikiEndpoint.as_view(), name="mawesi-wiki"),
+    # SLA: plazo por prioridad en horas hábiles y tiempo en cada estado (solo web).
+    path(f"api/mawesi/{PROJECT}/sla/", sl.SlaPolicyEndpoint.as_view(), name="mawesi-sla-policy"),
+    path(f"api/mawesi/{PROJECT}/sla/issues/", sl.SlaBatchEndpoint.as_view(), name="mawesi-sla-batch"),
+    path(f"api/mawesi/{ISSUE}/sla/", sl.IssueSlaEndpoint.as_view(), name="mawesi-sla-issue"),
     # Cronómetro: solo la web (lo usa una persona desde el navegador).
     path("api/mawesi/workspaces/<str:slug>/timer/", tm.CurrentTimerEndpoint.as_view(), name="mawesi-timer"),
     path("api/mawesi/workspaces/<str:slug>/timer/stop/", tm.StopTimerEndpoint.as_view(), name="mawesi-timer-stop"),

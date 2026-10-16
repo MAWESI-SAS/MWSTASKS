@@ -48,7 +48,12 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
   `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (`registerWikiNav`; si no está fijado, Plane lo pone en "More").
   API `GET /api/mawesi/workspaces/<slug>/wiki/?q=` (`views/wiki.py`): Páginas de los proyectos donde la persona es
   admin o miembro, sin archivadas, privadas solo de su dueño; busca sin tildes con `translate()` de Postgres.
-- `ext/nav.ts` agrega "Campos" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
+- SLA (`plane_mawesi/sla.py`, `views/sla.py`, tabla `mawesi_sla_policies`): una política por proyecto (plazo por
+  prioridad en horas hábiles, horario, días, festivos de Colombia, lista opcional). Se configura en
+  `…/settings/projects/:projectId/mawesi-sla` (ítem "SLA" junto a "Campos"). Chip en la tarjeta (envoltorio de
+  `all-properties`, pedidos juntados con `lib/batcher.ts`) y panel "Tiempo y SLA" en el peek y el detalle. El tiempo
+  por estado sale de `IssueActivity(field="state")`; los cerrados usan `Issue.completed_at`.
+- `ext/nav.ts` agrega "Campos" y "SLA" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
   `PROJECT_SETTINGS_ICONS` (objetos exportados de Plane, mutables).
 - `ext/nav.ts` agrega "Horas" a `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (arreglo exportado de Plane). Aparece
   en "More" (como Vistas/Análisis) y cada usuario puede fijarlo. El label no existe en el i18n de Plane: se muestra tal cual.
