@@ -213,3 +213,36 @@ class Recurrence(ProjectBaseModel):
 
     def __str__(self):
         return f"{self.frequency}×{self.interval} {self.issue_id}"
+
+
+class AutomationTrigger(models.TextChoices):
+    CREATED = "created", "Se crea una tarea"
+    ADDED_TO_LIST = "added_to_list", "Una tarea entra a una lista"
+    STATE = "state", "Cambia el estado a"
+    PRIORITY = "priority", "Cambia la prioridad a"
+
+
+def default_actions():
+    return {}
+
+
+class Automation(ProjectBaseModel):
+    """Regla "Cuando <trigger> → <acciones>" (como las automatizaciones de ClickUp). Se dispara con el historial de
+    Plane (IssueActivity), así funciona igual desde la web, la API o el tablero. Ver plane_mawesi/automations.py."""
+
+    name = models.CharField(max_length=120)
+    enabled = models.BooleanField(default=True)
+    trigger = models.CharField(max_length=20, choices=AutomationTrigger.choices)
+    trigger_value = models.CharField(max_length=64, blank=True, default="")  # id de estado/lista o prioridad
+    module = models.ForeignKey("db.Module", on_delete=models.CASCADE, null=True, blank=True, related_name="mawesi_automations")
+    # {"assignee_ids": [...], "state_id": "...", "priority": "...", "label_ids": [...], "due_in_days": 2, "template_id": "..."}
+    actions = models.JSONField(default=default_actions)
+    runs = models.PositiveIntegerField(default=0)
+    last_run_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "mawesi_automations"
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return self.name

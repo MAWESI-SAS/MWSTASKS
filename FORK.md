@@ -62,7 +62,12 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
   la regla apunta a la ocurrencia vigente; `run_recurrences` (Celery, cada minuto, horario cargado en
   `django_celery_beat` por la migración `0006`) crea la siguiente al completarla o al llegar su vencimiento, con
   `create_issue` de plantillas y `crum.impersonate` del autor de la regla. Panel "Repetir" en el peek y el detalle.
-- `ext/nav.ts` agrega "Campos", "SLA" y "Plantillas" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
+- Reglas automáticas (`plane_mawesi/automations.py`, `views/automations.py`, tabla `mawesi_automations`): "Cuando se crea /
+  entra a una lista / cambia estado / cambia prioridad → asignar, estado, prioridad, etiquetas, vencimiento, subtareas de
+  plantilla". El disparo es el historial de Plane: su tarea `issue_activity` guarda con `bulk_create` (sin post_save),
+  así que se leen sus filas en `task_postrun` (señales de Celery conectadas en `apps.py`); las filas creadas de a una
+  llegan por `post_save`. Las acciones escriben su historial con `comment="mawesi-automation"`, que no dispara reglas.
+- `ext/nav.ts` agrega "Campos", "SLA", "Plantillas" y "Reglas" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
   `PROJECT_SETTINGS_ICONS` (objetos exportados de Plane, mutables).
 - `ext/nav.ts` agrega "Horas" a `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (arreglo exportado de Plane). Aparece
   en "More" (como Vistas/Análisis) y cada usuario puede fijarlo. El label no existe en el i18n de Plane: se muestra tal cual.

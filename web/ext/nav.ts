@@ -6,7 +6,7 @@
  * (WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS) al cargar la app, sin editar Plane.
  * labelTranslationKey no existe en el i18n de Plane: i18next muestra la clave tal cual ("Horas").
  */
-import { AlarmClock, LayoutTemplate, ListChecks } from "lucide-react";
+import { AlarmClock, LayoutTemplate, ListChecks, Zap } from "lucide-react";
 import {
   EUserProjectRoles,
   EUserWorkspaceRoles,
@@ -48,12 +48,14 @@ export const registerWikiNav = () => {
 export const MAWESI_FIELDS_KEY = "mawesi_fields";
 export const MAWESI_SLA_KEY = "mawesi_sla";
 export const MAWESI_TEMPLATES_KEY = "mawesi_templates";
+export const MAWESI_RULES_KEY = "mawesi_rules";
 
 /** Ítems propios en Configuración del proyecto → Estructura de trabajo (objetos exportados de Plane, mutables). */
 const SETTINGS: Array<{ key: string; label: string; slug: string; icon: unknown }> = [
   { key: MAWESI_FIELDS_KEY, label: "Campos", slug: "mawesi-campos", icon: ListChecks },
   { key: MAWESI_SLA_KEY, label: "SLA", slug: "mawesi-sla", icon: AlarmClock },
   { key: MAWESI_TEMPLATES_KEY, label: "Plantillas", slug: "mawesi-plantillas", icon: LayoutTemplate },
+  { key: MAWESI_RULES_KEY, label: "Reglas", slug: "mawesi-reglas", icon: Zap },
 ];
 
 export const registerProjectSettings = () => {

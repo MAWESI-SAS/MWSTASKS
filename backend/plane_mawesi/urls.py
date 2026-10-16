@@ -6,6 +6,7 @@ from django.urls import path
 from plane.urls import urlpatterns as plane_urlpatterns
 
 from plane_mawesi.auth import views as auth
+from plane_mawesi.views import automations as au
 from plane_mawesi.views import properties as pr
 from plane_mawesi.views import recurrence as rc
 from plane_mawesi.views import sla as sl
@@ -58,6 +59,9 @@ urlpatterns = [
     path(f"api/mawesi/{PROJECT}/templates/<uuid:template_id>/", tp.TemplateDetailEndpoint.as_view(), name="mawesi-template"),
     path(f"api/mawesi/{PROJECT}/templates/<uuid:template_id>/apply/", tp.ApplyTemplateEndpoint.as_view(), name="mawesi-template-apply"),
     path(f"api/mawesi/{ISSUE}/recurrence/", rc.IssueRecurrenceEndpoint.as_view(), name="mawesi-recurrence"),
+    # Reglas automáticas (solo web).
+    path(f"api/mawesi/{PROJECT}/automations/", au.AutomationsEndpoint.as_view(), name="mawesi-automations"),
+    path(f"api/mawesi/{PROJECT}/automations/<uuid:rule_id>/", au.AutomationDetailEndpoint.as_view(), name="mawesi-automation"),
     # Cronómetro: solo la web (lo usa una persona desde el navegador).
     path("api/mawesi/workspaces/<str:slug>/timer/", tm.CurrentTimerEndpoint.as_view(), name="mawesi-timer"),
     path("api/mawesi/workspaces/<str:slug>/timer/stop/", tm.StopTimerEndpoint.as_view(), name="mawesi-timer-stop"),

@@ -48,6 +48,7 @@ export const extendedRoutes: RouteConfigEntry[] = [
             route(":workspaceSlug/settings/projects/:projectId/mawesi-campos", "../ext/pages/properties-settings/page.tsx"),
             route(":workspaceSlug/settings/projects/:projectId/mawesi-sla", "../ext/pages/sla-settings/page.tsx"),
             route(":workspaceSlug/settings/projects/:projectId/mawesi-plantillas", "../ext/pages/templates-settings/page.tsx"),
+            route(":workspaceSlug/settings/projects/:projectId/mawesi-reglas", "../ext/pages/automations-settings/page.tsx"),
           ]),
         ]),
       ]),

@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from plane.app.serializers import IssueCreateSerializer
 from plane.bgtasks.issue_activities_task import issue_activity
-from plane.db.models import Issue, Module, ModuleIssue, Project, ProjectMember
+from plane.db.models import Issue, IssueActivity, Module, ModuleIssue, Project, ProjectMember
 
 PRIORITIES = ("urgent", "high", "medium", "low", "none")
 MAX_NAME = 120
@@ -127,6 +127,14 @@ def apply(template, *, user, request_host, parent=None, name=None, module_id=Non
         target = module_id or template.module_id
         if target:
             _add_to_modules(parent, [target])
+            # Mismo historial que agregarla a la lista a mano: también dispara las reglas "entra a la lista".
+            module = Module.objects.get(pk=target)
+            IssueActivity.objects.create(
+                issue_id=parent.id, project_id=project.id, workspace_id=project.workspace_id,
+                actor_id=user.id if user else None, verb="created", field="modules", old_value="",
+                new_value=module.name, new_identifier=module.id, comment=f"added module {module.name}",
+                epoch=int(timezone.now().timestamp()),
+            )
     modules = list(ModuleIssue.objects.filter(issue=parent, deleted_at__isnull=True).values_list("module_id", flat=True))
     created = []
     # Plane lista las subtareas de la más nueva a la más vieja: se crean al revés para leerlas en el orden de la plantilla.

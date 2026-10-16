@@ -10,3 +10,10 @@ from plane_mawesi import recurrence
 @shared_task
 def run_recurrences():
     return recurrence.run_due()
+
+
+@shared_task
+def run_automations(issue_id, project_id, trigger, value):
+    from plane_mawesi import automations
+
+    return automations.run(issue_id, project_id, trigger, value)
