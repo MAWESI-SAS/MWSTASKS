@@ -38,6 +38,9 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
 - `ext/routes.ts` repite la cadena de layouts de Plane (`(all)/layout` → `[workspaceSlug]/layout` → `(projects)/layout`)
   para que `:workspaceSlug/mawesi/horas` quede dentro del workspace (Plane fusiona por archivo de layout).
   `scripts/assemble-web.sh` falla si Plane renombra alguno.
+- Horas tiene 2 pestañas (`?vista=mes` en la URL): "Detalle" (`worklogs/report/`, hasta 5.000 registros) y "Por mes"
+  (`worklogs/summary/?by=project|member|module`, sumado en la base con `TruncMonth`; "Lista" toma la primera lista
+  de la tarea para no contar 2 veces). Cada celda abre el Detalle filtrado. Cliente = proyecto.
 - `ext/routes.ts` también repite la cadena de ajustes (`(settings)/layout` → `settings/projects/layout` →
   `settings/projects/[projectId]/layout`) para `…/settings/projects/:projectId/mawesi-campos`.
 - `ext/routes.ts` cuelga `…/projects/:projectId/mawesi-tabla` (vista Tabla) del layout de proyecto de Plane

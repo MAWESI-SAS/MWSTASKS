@@ -4,11 +4,12 @@
 import datetime
 from typing import Optional
 
-from django.db.models import Sum
+from django.db.models import F, OuterRef, Subquery, Sum
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from plane.app.permissions import ROLE
-from plane.db.models import Issue, IssueActivity, ProjectMember, WorkspaceMember
+from plane.db.models import Issue, IssueActivity, ModuleIssue, ProjectMember, WorkspaceMember
 
 from plane_mawesi.models import Worklog
 
@@ -74,3 +75,41 @@ def parse_date(value: Optional[str]) -> Optional[datetime.date]:
     if not value:
         return None
     return datetime.date.fromisoformat(value)
+
+
+# by → (campo de la clave, campo del nombre). "module" toma la primera lista de la tarea para no contar 2 veces.
+SUMMARY_GROUPS = {
+    "project": ("project_id", "project__name"),
+    "member": ("member_id", "member__display_name"),
+    "module": ("module_key", "module_name"),
+}
+
+
+def monthly_summary(rows, by: str) -> dict:
+    """Minutos por grupo y por mes ("AAAA-MM"), sumados en la base. Grupos de mayor a menor total."""
+    key, label = SUMMARY_GROUPS[by]
+    if by == "module":
+        first = ModuleIssue.objects.filter(issue_id=OuterRef("issue_id"), deleted_at__isnull=True).order_by("created_at")
+        rows = rows.annotate(
+            module_key=Subquery(first.values("module_id")[:1]),
+            module_name=Subquery(first.values("module__name")[:1]),
+        )
+    sums = (
+        rows.annotate(month=TruncMonth("date"))
+        .values(key, label, "project_id", "month")
+        .annotate(minutes=Sum("duration_minutes"), project_identifier=F("project__identifier"))
+        .order_by()
+    )
+    groups, months = {}, set()
+    for r in sums:
+        month = r["month"].strftime("%Y-%m")
+        months.add(month)
+        # Sin lista: una fila por proyecto ("TQ · Sin lista"), no una sola mezclada.
+        gid = str(r[key] or f"none-{r['project_id']}")
+        g = groups.setdefault(gid, {"key": gid, "label": r[label] or "", "project_id": None, "project_identifier": None, "cells": {}, "total": 0})
+        if by != "member":
+            g["project_id"], g["project_identifier"] = str(r["project_id"]), r["project_identifier"]
+        g["cells"][month] = g["cells"].get(month, 0) + r["minutes"]
+        g["total"] += r["minutes"]
+    ordered = sorted(groups.values(), key=lambda g: (-g["total"], g["label"]))
+    return {"by": by, "months": sorted(months), "groups": ordered, "total_minutes": sum(g["total"] for g in ordered)}

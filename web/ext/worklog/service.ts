@@ -32,6 +32,19 @@ export type TReportRow = {
 
 export type TReport = { total_minutes: number; count: number; rows: TReportRow[] };
 
+export type TSummaryBy = "project" | "member" | "module";
+
+export type TSummaryGroup = {
+  key: string;
+  label: string;
+  project_id: string | null;
+  project_identifier: string | null;
+  cells: Record<string, number>;
+  total: number;
+};
+
+export type TSummary = { by: TSummaryBy; months: string[]; groups: TSummaryGroup[]; total_minutes: number };
+
 export type TWorklogInput = { duration_minutes: number; date: string; description?: string; member?: string };
 
 class WorklogService extends APIService {
@@ -73,6 +86,11 @@ class WorklogReportService extends APIService {
   async report(ws: string, params: { from?: string; to?: string; project_id?: string }): Promise<TReport> {
     // OJO: el 2º argumento de APIService.get de Plane es config de axios (se esparce), no los query params.
     const r = await this.get(`/api/mawesi/workspaces/${ws}/worklogs/report/`, { params });
+    return r?.data;
+  }
+
+  async summary(ws: string, params: { from: string; to: string; by: TSummaryBy; project_id?: string }): Promise<TSummary> {
+    const r = await this.get(`/api/mawesi/workspaces/${ws}/worklogs/summary/`, { params });
     return r?.data;
   }
 }

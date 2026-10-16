@@ -1,4 +1,4 @@
-"""E2E del reporte de horas: entrada en el menú, total, filtro de fechas y CSV.
+"""E2E del reporte de horas: entrada en el menú, total, filtro de fechas, CSV y pestaña "Por mes".
 
 Uso: RUN=<id> CHROME=<ruta-opcional> python3 web/e2e/report.py <carpeta-capturas>
 Necesita el workspace de smoke.py con el mismo RUN (mawesi-qa-<RUN>, tarea CQA-1).
@@ -55,6 +55,26 @@ with sync_playwright() as p:
     checks["csv_bom"] = raw.startswith(b"\xef\xbb\xbf")
     checks["csv_cabecera"] = lines[0] == "Fecha;Proyecto;Tarea;Título;Persona;Minutos;Horas;Nota"
     checks["csv_fila"] = len(lines) == 2 and ";90;1,50;" in lines[1] and '"Soporte; ""urgente"""' in lines[1]
+
+    # Pestaña "Por mes": suma en el servidor, celdas clicables que abren el detalle filtrado.
+    mes = hoy.strftime("%Y-%m")
+    en_mes = 1 + (ayer.strftime("%Y-%m") == mes)
+    pg.locator("[data-mawesi=report-tab-monthly]").click()
+    expect(pg.locator("[data-mawesi=report-monthly]")).to_be_visible(timeout=10000)
+    checks["vista_en_url"] = "vista=mes" in pg.url
+    expect(pg.locator("[data-mawesi=summary-row]")).to_have_count(1, timeout=10000)
+    checks["mes_total"] = "2 h 15 min" in pg.locator("[data-mawesi=summary-total]").inner_text()
+    checks["mes_columna"] = pg.locator(f"[data-mawesi=summary-month-{mes}]").inner_text().strip() != "·"
+    pg.screenshot(path=f"{OUT}/por-mes.png")
+    with pg.expect_download() as dl:
+        pg.locator("[data-mawesi=summary-export]").click()
+    mlines = open(dl.value.path(), "rb").read().decode("utf-8-sig").split("\r\n")
+    checks["mes_csv"] = mlines[0].startswith("Cliente;") and mlines[0].endswith(f"{mes};Total") and mlines[-1].endswith(";2,25")
+    pg.select_option("select[name=group_by]", "member")
+    expect(pg.locator("[data-mawesi=summary-table] thead th").first).to_have_text("Persona", timeout=10000)
+    pg.locator(f"[data-mawesi=summary-cell-{mes}]").first.click()
+    expect(pg.locator("[data-mawesi=report-table] tbody tr")).to_have_count(en_mes, timeout=10000)
+    checks["mes_abre_detalle"] = pg.locator("input[name=from]").input_value() == f"{mes}-01" and "vista=mes" not in pg.url
     b.close()
 print(checks)
 sys.exit(0 if all(checks.values()) else 1)

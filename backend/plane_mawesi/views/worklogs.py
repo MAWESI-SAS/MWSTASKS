@@ -114,6 +114,31 @@ class WorklogTotalsMixin:
         return Response(services.totals_by_issue(slug, project_id, ids), status=status.HTTP_200_OK)
 
 
+def _scoped_worklogs(request, slug):
+    """Horas visibles para quien consulta (admin o miembro del proyecto), con los filtros comunes.
+
+    ?from=AAAA-MM-DD&to=AAAA-MM-DD[&project_id=][&member_id=]. ValueError si una fecha no se entiende.
+    """
+    date_from = services.parse_date(request.GET.get("from"))
+    date_to = services.parse_date(request.GET.get("to"))
+    projects = ProjectMember.objects.filter(
+        member=request.user, workspace__slug=slug, is_active=True, role__in=WRITE_ROLES
+    ).values_list("project_id", flat=True)
+    rows = Worklog.objects.filter(workspace__slug=slug, project_id__in=projects)
+    if date_from:
+        rows = rows.filter(date__gte=date_from)
+    if date_to:
+        rows = rows.filter(date__lte=date_to)
+    if request.GET.get("project_id"):
+        rows = rows.filter(project_id=request.GET["project_id"])
+    if request.GET.get("member_id"):
+        rows = rows.filter(member_id=request.GET["member_id"])
+    return rows
+
+
+BAD_DATES = Response({"error": "Fechas en formato AAAA-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class WorklogReportMixin:
     """GET workspace: ?from=AAAA-MM-DD&to=AAAA-MM-DD[&project_id=][&member_id=] → filas + totales.
 
@@ -122,22 +147,9 @@ class WorklogReportMixin:
 
     def get(self, request, slug):
         try:
-            date_from = services.parse_date(request.GET.get("from"))
-            date_to = services.parse_date(request.GET.get("to"))
+            rows = _scoped_worklogs(request, slug)
         except ValueError:
-            return Response({"error": "Fechas en formato AAAA-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
-        projects = ProjectMember.objects.filter(
-            member=request.user, workspace__slug=slug, is_active=True, role__in=WRITE_ROLES
-        ).values_list("project_id", flat=True)
-        rows = Worklog.objects.filter(workspace__slug=slug, project_id__in=projects)
-        if date_from:
-            rows = rows.filter(date__gte=date_from)
-        if date_to:
-            rows = rows.filter(date__lte=date_to)
-        if request.GET.get("project_id"):
-            rows = rows.filter(project_id=request.GET["project_id"])
-        if request.GET.get("member_id"):
-            rows = rows.filter(member_id=request.GET["member_id"])
+            return BAD_DATES
         data = list(
             rows.select_related(None)
             .values("id", "date", "duration_minutes", "description", "member_id", "project_id", "issue_id")
@@ -151,6 +163,23 @@ class WorklogReportMixin:
         )
         total = rows.aggregate(total=Sum("duration_minutes"))["total"] or 0
         return Response({"total_minutes": total, "count": len(data), "rows": data}, status=status.HTTP_200_OK)
+
+
+class WorklogSummaryMixin:
+    """GET workspace: mismos filtros que el reporte + ?by=project|member|module → minutos por grupo y por mes.
+
+    Se suma en la base: sirve para años de horas sin traer cada registro (para facturar por cliente).
+    """
+
+    def get(self, request, slug):
+        by = request.GET.get("by", "project")
+        if by not in services.SUMMARY_GROUPS:
+            return Response({"error": "by debe ser project, member o module."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            rows = _scoped_worklogs(request, slug)
+        except ValueError:
+            return BAD_DATES
+        return Response(services.monthly_summary(rows, by), status=status.HTTP_200_OK)
 
 
 # API web (cookie de sesión)
@@ -170,6 +199,10 @@ class WorklogReportEndpoint(WorklogReportMixin, PlaneSessionAPIView):
     pass
 
 
+class WorklogSummaryEndpoint(WorklogSummaryMixin, PlaneSessionAPIView):
+    pass
+
+
 # API pública (X-Api-Key): AI Employees, script de migración
 class IssueWorklogsKeyEndpoint(IssueWorklogsMixin, PlaneKeyAPIView):
     pass
@@ -184,4 +217,8 @@ class WorklogTotalsKeyEndpoint(WorklogTotalsMixin, PlaneKeyAPIView):
 
 
 class WorklogReportKeyEndpoint(WorklogReportMixin, PlaneKeyAPIView):
+    pass
+
+
+class WorklogSummaryKeyEndpoint(WorklogSummaryMixin, PlaneKeyAPIView):
     pass

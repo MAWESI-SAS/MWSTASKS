@@ -33,3 +33,31 @@ export const todayISO = (): string => {
   const d = new Date();
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 };
+
+/** 90 → "1,5" (horas con 1 decimal, en el formato del navegador). Para tableros donde "h min" ocupa mucho. */
+export const formatHours = (total: number): string => (total / 60).toLocaleString(undefined, { maximumFractionDigits: 1 });
+
+/** "2026-01".."2026-03" → ["2026-01", "2026-02", "2026-03"]. Vacío si el rango está al revés. */
+export const monthRange = (from: string, to: string): string[] => {
+  const out: string[] = [];
+  let [y, m] = from.split("-").map(Number);
+  const [ty, tm] = to.split("-").map(Number);
+  while (y < ty || (y === ty && m <= tm)) {
+    out.push(`${y}-${String(m).padStart(2, "0")}`);
+    [y, m] = m === 12 ? [y + 1, 1] : [y, m + 1];
+  }
+  return out;
+};
+
+/** "2026-02" → "2026-02-28". */
+export const monthEnd = (month: string): string => {
+  const [y, m] = month.split("-").map(Number);
+  return `${month}-${String(new Date(y, m, 0).getDate()).padStart(2, "0")}`;
+};
+
+/** Mes "AAAA-MM" de hoy corrido `delta` meses. */
+export const monthOf = (delta = 0): string => {
+  const [y, m] = todayISO().split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};

@@ -136,6 +136,64 @@ class TestTotalesYReporte:
         assert session_client.get(f"/api/mawesi/workspaces/{workspace.slug}/worklogs/report/?from=13-10-2026").status_code == 400
 
 
+def _summary(client, ws, **params):
+    q = "&".join(f"{k}={v}" for k, v in params.items())
+    return client.get(f"/api/mawesi/workspaces/{ws.slug}/worklogs/summary/?{q}")
+
+
+@pytest.mark.django_db
+class TestResumenMensual:
+    @pytest.fixture
+    def horas(self, workspace, project, issue, create_user, member_factory):
+        from plane.db.models import Module, ModuleIssue
+        ana, _ = member_factory("ana@example.com", MEMBER)
+        lista = Module.objects.create(name="Soporte", project=project, workspace=workspace)
+        ModuleIssue.objects.create(issue=issue, module=lista, project=project, workspace=workspace)
+        for member, minutes, date in (
+            (create_user, 60, datetime.date(2026, 1, 5)),
+            (create_user, 30, datetime.date(2026, 1, 31)),
+            (ana, 120, datetime.date(2026, 2, 1)),
+            (ana, 15, datetime.date(2025, 12, 31)),
+        ):
+            Worklog.objects.create(issue=issue, project=project, workspace=workspace, member=member, duration_minutes=minutes, date=date)
+        return ana, lista
+
+    def test_por_cliente_y_mes(self, session_client, workspace, project, horas):
+        r = _summary(session_client, workspace, by="project", **{"from": "2026-01-01", "to": "2026-02-28"})
+        assert r.status_code == 200, r.data
+        assert r.data["months"] == ["2026-01", "2026-02"] and r.data["total_minutes"] == 210
+        [g] = r.data["groups"]
+        assert g["key"] == str(project.id) and g["project_identifier"] == "CON"
+        assert g["cells"] == {"2026-01": 90, "2026-02": 120} and g["total"] == 210
+
+    def test_por_persona_suma_todos_los_proyectos(self, session_client, workspace, horas):
+        ana, _ = horas
+        r = _summary(session_client, workspace, by="member", **{"from": "2026-01-01"})
+        assert [(g["key"], g["total"]) for g in r.data["groups"]][0] == (str(ana.id), 120)
+        assert r.data["groups"][0]["project_id"] is None
+
+    def test_por_lista_y_sin_lista(self, session_client, workspace, project, create_user, horas):
+        _, lista = horas
+        from plane.db.models import Issue
+        suelta = Issue.objects.create(name="Suelta", project=project, workspace=workspace)
+        Worklog.objects.create(issue=suelta, project=project, workspace=workspace, member=create_user, duration_minutes=10, date=datetime.date(2026, 1, 2))
+        r = _summary(session_client, workspace, by="module", **{"from": "2026-01-01", "to": "2026-01-31"})
+        assert {g["label"]: g["total"] for g in r.data["groups"]} == {"Soporte": 90, "": 10}
+        assert r.data["groups"][1]["key"] == f"none-{project.id}"
+
+    def test_filtra_persona_y_valida(self, session_client, workspace, horas):
+        ana, _ = horas
+        r = _summary(session_client, workspace, member_id=ana.id)
+        assert r.data["total_minutes"] == 135 and r.data["months"] == ["2025-12", "2026-02"]
+        assert _summary(session_client, workspace, by="cliente").status_code == 400
+        assert _summary(session_client, workspace, **{"from": "2026-13-01"}).status_code == 400
+
+    def test_guest_no_ve_horas(self, member_factory, workspace, horas):
+        _, client = member_factory("guest@cliente.com", GUEST)
+        r = _summary(client, workspace)
+        assert r.status_code == 200 and r.data["groups"] == [] and r.data["total_minutes"] == 0
+
+
 @pytest.mark.django_db
 def test_api_key_registra(api_key_client, workspace, project, issue, today):
     r = api_key_client.post(url(workspace, project, issue, prefix="api/v1/mawesi"), {"duration_minutes": 20, "date": today}, format="json")

@@ -22,12 +22,13 @@ PROJECT = "workspaces/<str:slug>/projects/<uuid:project_id>"
 ISSUE = f"{PROJECT}/issues/<uuid:issue_id>"
 
 
-def _routes(prefix: str, issue_view, detail_view, totals_view, report_view, suffix: str):
+def _routes(prefix: str, issue_view, detail_view, totals_view, report_view, summary_view, suffix: str):
     return [
         path(f"{prefix}{ISSUE}/worklogs/", issue_view.as_view(), name=f"mawesi-worklogs{suffix}"),
         path(f"{prefix}{ISSUE}/worklogs/<uuid:pk>/", detail_view.as_view(), name=f"mawesi-worklog-detail{suffix}"),
         path(f"{prefix}{PROJECT}/worklogs/totals/", totals_view.as_view(), name=f"mawesi-worklog-totals{suffix}"),
         path(f"{prefix}workspaces/<str:slug>/worklogs/report/", report_view.as_view(), name=f"mawesi-worklog-report{suffix}"),
+        path(f"{prefix}workspaces/<str:slug>/worklogs/summary/", summary_view.as_view(), name=f"mawesi-worklog-summary{suffix}"),
     ]
 
 
@@ -46,8 +47,8 @@ urlpatterns = [
     path("auth/microsoft/", auth.MicrosoftInitiateEndpoint.as_view(), name="mawesi-microsoft-initiate"),
     path("auth/microsoft/callback/", auth.MicrosoftCallbackEndpoint.as_view(), name="mawesi-microsoft-callback"),
     path("api/mawesi/auth-providers/", auth.AuthProvidersEndpoint.as_view(), name="mawesi-auth-providers"),
-    *_routes("api/mawesi/", w.IssueWorklogsEndpoint, w.WorklogDetailEndpoint, w.WorklogTotalsEndpoint, w.WorklogReportEndpoint, ""),
-    *_routes("api/v1/mawesi/", w.IssueWorklogsKeyEndpoint, w.WorklogDetailKeyEndpoint, w.WorklogTotalsKeyEndpoint, w.WorklogReportKeyEndpoint, "-key"),
+    *_routes("api/mawesi/", w.IssueWorklogsEndpoint, w.WorklogDetailEndpoint, w.WorklogTotalsEndpoint, w.WorklogReportEndpoint, w.WorklogSummaryEndpoint, ""),
+    *_routes("api/v1/mawesi/", w.IssueWorklogsKeyEndpoint, w.WorklogDetailKeyEndpoint, w.WorklogTotalsKeyEndpoint, w.WorklogReportKeyEndpoint, w.WorklogSummaryKeyEndpoint, "-key"),
     path(f"api/mawesi/{PROJECT}/table/", tb.ProjectTableEndpoint.as_view(), name="mawesi-table"),
     path("api/mawesi/workspaces/<str:slug>/wiki/", wk.WikiEndpoint.as_view(), name="mawesi-wiki"),
     # SLA: plazo por prioridad en horas hábiles y tiempo en cada estado (solo web).
