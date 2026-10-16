@@ -7,6 +7,7 @@
 import "./theme/fonts.css";
 import "./theme/mawesi-theme.generated.css";
 import "./theme/shell.css";
+import "./folders/tree.css";
 import { registerNav, registerProjectSettings } from "./nav";
 
 registerNav();

@@ -23,6 +23,8 @@ with sync_playwright() as p:
     pg.wait_for_selector("input[name=password]"); pg.fill("input[name=password]", "Mawesi-Prueba-2026!"); pg.keyboard.press("Enter")
     pg.wait_for_timeout(4000)
     pid = next(x["id"] for x in pg.evaluate(API, ["GET", f"/api/workspaces/{WS}/projects/", None])["data"] if x["identifier"] == "CQA")
+    # El árbol respeta el interruptor "Módulos" del proyecto (como Plane): se prende para la prueba.
+    pg.evaluate(API, ["PATCH", f"/api/workspaces/{WS}/projects/{pid}/", {"module_view": True}])
     iss = pg.evaluate(API, ["GET", f"/api/workspaces/{WS}/projects/{pid}/issues/", None])["data"]
     iid = (iss.get("results", iss) if isinstance(iss, dict) else iss)[0]["id"]
     mods = pg.evaluate(API, ["GET", f"/api/workspaces/{WS}/projects/{pid}/modules/", None])["data"]

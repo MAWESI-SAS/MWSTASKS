@@ -7,7 +7,8 @@
  */
 export { Button } from "@plane/propel/button";
 export { TOAST_TYPE, setToast } from "@plane/propel/toast";
-export { Breadcrumbs, Header, Input, TextArea } from "@plane/ui";
+export { Breadcrumbs, CustomMenu, Header, Input, TextArea } from "@plane/ui";
+export { IconButton } from "@plane/propel/icon-button";
 // Librería de diálogos que usa ModalCore de Plane (misma versión que Plane).
 export { Dialog, Transition } from "@headlessui/react";
 export { useTranslation } from "@plane/i18n";

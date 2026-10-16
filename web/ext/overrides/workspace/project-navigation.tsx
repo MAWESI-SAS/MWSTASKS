@@ -4,6 +4,7 @@
  *
  * Ítems del proyecto en el menú lateral de Plane + "Tabla" (vista propia) + árbol "Carpeta > Lista".
  * Usa la prop additionalNavigationItems que Plane ya trae (y que nadie le pasa en CE).
+ * El árbol reemplaza al ítem "Módulos": `folders/tree.css` lo oculta dentro de [data-mawesi=project-nav].
  */
 import { useCallback } from "react";
 import type { ComponentProps } from "react";
@@ -36,7 +37,9 @@ export const ProjectNavigation = (props: ComponentProps<typeof Upstream>) => {
   );
   return (
     <>
-      <Upstream {...props} additionalNavigationItems={extra} />
+      <div className="contents" data-mawesi="project-nav">
+        <Upstream {...props} additionalNavigationItems={extra} />
+      </div>
       <ModuleTree workspaceSlug={props.workspaceSlug} projectId={props.projectId} />
     </>
   );

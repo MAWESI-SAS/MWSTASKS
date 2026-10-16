@@ -1,0 +1,11 @@
+/*
+ * Copyright (c) 2026-present MAWESI S.A.S.
+ * SPDX-License-Identifier: AGPL-3.0-only
+ *
+ * Una sola forma de ver las listas: el árbol "Carpeta > Lista". Se oculta el ítem "Módulos" del proyecto
+ * (Plane lo arma en su baseNavigation y no deja quitarlo por props). La página sigue existiendo.
+ */
+[data-mawesi="project-nav"] a[href$="/modules"],
+[data-mawesi="project-nav"] a[href$="/modules/"] {
+  display: none;
+}
