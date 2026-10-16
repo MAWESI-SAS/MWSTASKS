@@ -72,8 +72,9 @@ export const MonthlySummary = observer(function MonthlySummary({ workspaceSlug, 
     });
 
   const exportCSV = () => {
-    const rows = [...groups.map((g) => ({ label: label(g), cells: g.cells, total: g.total })), { label: t("report.total"), cells: columnTotals, total }];
-    const head = { project: t("report.by_client"), member: t("report.by_member"), module: t("report.by_list") }[by];
+    // Encabezados fijos en español, como el CSV del Detalle (Excel en español).
+    const rows = [...groups.map((g) => ({ label: label(g), cells: g.cells, total: g.total })), { label: "Total", cells: columnTotals, total }];
+    const head = { project: "Cliente", member: "Persona", module: "Lista" }[by];
     downloadCSV(summaryToCSV(head, months, rows), `horas_por_mes_${workspaceSlug}_${fromMonth}_${toMonth}.csv`);
   };
 

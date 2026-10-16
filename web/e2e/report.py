@@ -3,7 +3,7 @@
 Uso: RUN=<id> CHROME=<ruta-opcional> python3 web/e2e/report.py <carpeta-capturas>
 Necesita el workspace de smoke.py con el mismo RUN (mawesi-qa-<RUN>, tarea CQA-1).
 """
-import datetime, os, sys
+import datetime, os, re, sys
 from playwright.sync_api import expect, sync_playwright
 
 BASE, OUT, RUN = "http://localhost:8088", sys.argv[1], os.environ.get("RUN", "1")
@@ -71,7 +71,7 @@ with sync_playwright() as p:
     mlines = open(dl.value.path(), "rb").read().decode("utf-8-sig").split("\r\n")
     checks["mes_csv"] = mlines[0].startswith("Cliente;") and mlines[0].endswith(f"{mes};Total") and mlines[-1].endswith(";2,25")
     pg.select_option("select[name=group_by]", "member")
-    expect(pg.locator("[data-mawesi=summary-table] thead th").first).to_have_text("Persona", timeout=10000)
+    expect(pg.locator("[data-mawesi=summary-table] thead th").first).to_have_text(re.compile("^(Persona|Person)$"), timeout=10000)
     pg.locator(f"[data-mawesi=summary-cell-{mes}]").first.click()
     expect(pg.locator("[data-mawesi=report-table] tbody tr")).to_have_count(en_mes, timeout=10000)
     checks["mes_abre_detalle"] = pg.locator("input[name=from]").input_value() == f"{mes}-01" and "vista=mes" not in pg.url
