@@ -124,3 +124,15 @@ docker exec -i -e SLUG=mawesi -e OWNER=<email-admin> -e BUNDLE=/tmp/clickup-docs
 - Doc de una tarea → Página en el proyecto de la tarea + link "Doc: …" en la tarea.
 - Imágenes y archivos de ClickUp se copian (hasta 100 MB).
 - Idempotente: una Página ya cargada no se toca (para traer docs nuevos, volver a correr ambos pasos).
+
+## Fecha real de cierre (para SLA y reportes)
+
+Las tareas migradas ya cerradas quedan con `completed_at` = día de la migración. Para corregirlo:
+
+```bash
+CLICKUP_TOKEN=... python -m tools.migrate_clickup.closed_dates --config sync.json --out closed.json
+docker cp closed.json <api>:/tmp/closed.json
+docker exec -i -e SLUG=mawesi -e CLOSED=/tmp/closed.json <api> python manage.py shell < tools/migrate_clickup/closed_shell.py
+```
+
+Idempotente. Lo que cierra la copia incremental queda con la hora de la copia (hasta 15 min de diferencia).
