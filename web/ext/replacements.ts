@@ -13,6 +13,7 @@ export const REPLACEMENTS: Record<string, string> = {
   // Parecido a ClickUp: "Tabla" + árbol Carpeta > Lista en el menú, y horas en las tarjetas
   "components/workspace/sidebar/project-navigation": "overrides/workspace/project-navigation.tsx",
   "components/issues/issue-layouts/properties/all-properties": "overrides/issues/all-properties.tsx",
+  "components/common/breadcrumb-link": "overrides/common/breadcrumb-link.tsx",
   "components/navigation/top-navigation-root": "overrides/navigation/top-navigation-root.tsx",
   // Cover del perfil con API en el mismo origen (Plane manda URL relativa a un URLField)
   "helpers/cover-image.helper": "overrides/helpers/cover-image.ts",

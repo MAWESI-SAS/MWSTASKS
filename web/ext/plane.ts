@@ -36,7 +36,9 @@ export { AppHeader } from "@/components/core/app-header";
 export { ContentWrapper } from "@/components/core/content-wrapper";
 // PageHead propio (marca): desde ext/ el plugin NO reemplaza módulos, así que se toma directo de overrides/.
 export { PageHead } from "./overrides/core/page-title";
-export { BreadcrumbLink } from "@/components/common/breadcrumb-link";
+// Envuelto (oculta la miga "Modules"): ext/ usa el original por @upstream/; con "@/" el resolvedor guarda
+// la resolución sin envoltorio y Plane deja de recibir el reemplazo (ver FORK.md).
+export { BreadcrumbLink } from "@upstream/components/common/breadcrumb-link";
 export { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 export { SettingsPageHeader } from "@/components/settings/page-header";
 export { PROJECT_SETTINGS_ICONS } from "@/components/settings/project/sidebar/item-icon";

@@ -9,3 +9,8 @@
 [data-mawesi="project-nav"] a[href$="/modules/"] {
   display: none;
 }
+
+/* Miga "Modules" (overrides/common/breadcrumb-link.tsx): se oculta el paso con su separador ">". */
+:has(> [data-mawesi="hidden-crumb"]) {
+  display: none;
+}

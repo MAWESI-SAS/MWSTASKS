@@ -59,6 +59,10 @@ with sync_playwright() as p:
     menu(header, "tree-add-menu", "new-folder"); dialog(folder=F1, list=L1)
     pg.wait_for_url(re.compile("/modules/"), timeout=10000)
     checks["crea_carpeta"] = f"{F1} / {L1}" in names()
+    # Dentro de la lista, las migas no llevan a la página de módulos de Plane
+    pg.wait_for_timeout(1500)
+    checks["sin_miga_modulos"] = pg.locator("a[href$='/modules/']:visible, a[href$='/modules']:visible").count() == 0
+    pg.screenshot(path=f"{OUT}/folders-migas.png", clip={"x": 250, "y": 40, "width": 900, "height": 50})
     # 3. Validación: el separador no se acepta
     menu(folder_row(F1), "tree-folder-menu", "new-list")
     d = pg.locator("[data-mawesi=tree-dialog]"); d.locator("input[name=list]").fill("mal / nombre"); d.locator("[data-mawesi=tree-dialog-save]").click()

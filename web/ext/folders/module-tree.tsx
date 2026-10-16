@@ -202,7 +202,7 @@ export const ModuleTree = observer(function ModuleTree({ workspaceSlug, projectI
         );
       })}
       {tree.loose.map((l) => listRow(l, ""))}
-      <TreeDialog dialog={dialog} onClose={() => setDialog(null)} tree={tree} workspaceSlug={workspaceSlug} projectId={projectId} />
+      <TreeDialog dialog={dialog} onClose={() => setDialog(null)} workspaceSlug={workspaceSlug} projectId={projectId} />
       <MawesiConfirm
         isOpen={!!toDelete}
         onClose={() => setToDelete(null)}

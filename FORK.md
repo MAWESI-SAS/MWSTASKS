@@ -18,6 +18,7 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
 - Cada clave debe resolver a exactamente 1 archivo (en `core/` para v1.4.x o en la raíz de `apps/web` para la estructura de `preview`).
 - Cada clave debe ser importada por la compilación del cliente.
 - `tsc -p tsconfig.ext.json` comprueba que los props de los envoltorios sigan siendo compatibles.
+- Si `ext/` (p. ej. `ext/plane.ts`) necesita un módulo envuelto, lo importa con `@upstream/…`, nunca con `@/…`: el resolvedor guarda la primera resolución de esa ruta y, si la hace `ext/` (que recibe el original), Plane tampoco recibe el envoltorio. Lo detecta la guardia "Plane ya no importa".
 
 | Clave | Envoltorio |
 |---|---|
@@ -28,6 +29,7 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
 | `components/navigation/top-navigation-root` | `overrides/navigation/top-navigation-root.tsx`: envuelve la barra superior en `.mawesi-topbar` (`display: contents`, sin cambiar el layout) para pintarla en blanco sobre el gradiente |
 | `components/workspace/sidebar/project-navigation` | `overrides/workspace/project-navigation.tsx`: pasa la prop `additionalNavigationItems` (existe en Plane, CE no la usa) con el ítem "Tabla" y dibuja debajo el árbol "Carpeta > Lista" (`folders/module-tree.tsx`), armado con los módulos `"Carpeta / Lista"`. Solo en el modo de menú "acordeón" (el de por defecto). El árbol es la única forma de ordenar listas: menús "⋯" para crear/renombrar/mover/borrar (`folders/tree-dialog.tsx`; mismos permisos que la API de módulos: crear/editar admin y miembro, borrar admin o creador) y el ítem "Módulos" de Plane se oculta con CSS (`folders/tree.css`, dentro de `[data-mawesi=project-nav]`) porque Plane lo arma en `baseNavigation` sin prop para quitarlo. Respeta el interruptor `module_view` del proyecto |
 | `components/issues/issue-layouts/properties/all-properties` | `overrides/issues/all-properties.tsx`: chip de horas al final de las propiedades de la tarjeta (tablero y lista). El contenedor de Plane queda en `contents` para compartir el flex. Los totales se piden en lote por proyecto (`worklog/totals.ts`) |
+| `components/common/breadcrumb-link` | `overrides/common/breadcrumb-link.tsx`: no pinta la miga "Modules" (href `/projects/<id>/modules/`); las listas se ordenan solo desde el árbol. El resto de migas las pinta Plane |
 | `helpers/cover-image.helper` | `overrides/helpers/cover-image.ts`: `handleCoverImageChange` completa `cover_image` con `window.location.origin` cuando sale relativa (con `API_BASE_URL=""` Plane manda `/api/assets/...` y `User.cover_image` es URLField → 400 al cambiar el cover del perfil). Quitar si Plane lo arregla |
 | `hooks/oauth/extended` | `overrides/auth/oauth-extended.tsx`: punto de extensión de Plane para logins extra (en CE devuelve vacío). Suma "Continue with Microsoft" si `GET /api/mawesi/auth-providers/` dice que está configurado |
 

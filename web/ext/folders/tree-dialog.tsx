@@ -7,12 +7,13 @@
  */
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { observer } from "mobx-react";
 import { useNavigate } from "react-router";
 import { useT } from "../i18n";
 import { Button, Input, TOAST_TYPE, setToast, useModule } from "../plane";
 import { MawesiModal } from "../ui/modal";
-import { isValidPart, moduleName } from "./group";
-import type { TList, TTree } from "./group";
+import { groupModules, isValidPart, moduleName } from "./group";
+import type { TList } from "./group";
 
 export type TTreeDialog =
   | { kind: "new-folder" }
@@ -21,15 +22,15 @@ export type TTreeDialog =
   | { kind: "rename-list"; folder: string; list: TList }
   | { kind: "move-list"; folder: string; list: TList };
 
-type Props = { dialog: TTreeDialog | null; onClose: () => void; tree: TTree; workspaceSlug: string; projectId: string };
+type Props = { dialog: TTreeDialog | null; onClose: () => void; workspaceSlug: string; projectId: string };
 
 const NEW_FOLDER = "\u0000new";
 const selectClass = "w-full rounded-md border border-subtle bg-surface-1 px-2 py-1.5 text-13";
 
-export function TreeDialog({ dialog, onClose, tree, workspaceSlug, projectId }: Props) {
+export const TreeDialog = observer(function TreeDialog({ dialog, onClose, workspaceSlug, projectId }: Props) {
   const t = useT();
   const navigate = useNavigate();
-  const { createModule, updateModuleDetails } = useModule();
+  const { createModule, updateModuleDetails, getProjectModuleDetails, fetchModules } = useModule();
   const [first, setFirst] = useState("");
   const [second, setSecond] = useState("");
   const [target, setTarget] = useState("");
@@ -46,6 +47,8 @@ export function TreeDialog({ dialog, onClose, tree, workspaceSlug, projectId }: 
 
   if (!dialog) return null;
 
+  // Siempre el árbol actual del store (no el de cuando se abrió la ventana): otra acción pudo cambiarlo.
+  const tree = groupModules(getProjectModuleDetails(projectId) ?? []);
   const folderNames = tree.folders.map((f) => f.name);
   const listsIn = (folder: string) => (folder ? (tree.folders.find((f) => f.name === folder)?.lists ?? []) : tree.loose);
   const listTaken = (folder: string, name: string, exceptId?: string) =>
@@ -95,10 +98,15 @@ export function TreeDialog({ dialog, onClose, tree, workspaceSlug, projectId }: 
         return open((await createModule(workspaceSlug, projectId, { name: moduleName(first, second) })).id);
       case "new-list":
         return open((await createModule(workspaceSlug, projectId, { name: moduleName(dialog.folder, first) })).id);
-      case "rename-folder":
+      case "rename-folder": {
+        // Las listas de la carpeta se leen del servidor: una lectura vieja en vuelo pudo pisar el store
+        // (p. ej. una lista recién movida volvería a aparecer acá y se renombraría con la carpeta).
+        await fetchModules(workspaceSlug, projectId);
+        const lists = groupModules(getProjectModuleDetails(projectId) ?? []).folders.find((f) => f.name === dialog.folder)?.lists ?? [];
         // Una por vez: si una falla, las ya renombradas quedan bien y el resto sigue en la carpeta vieja.
-        for (const l of listsIn(dialog.folder)) await rename(l.id, moduleName(first, l.name));
+        for (const l of lists) await rename(l.id, moduleName(first, l.name));
         return;
+      }
       case "rename-list":
         return void (await rename(dialog.list.id, moduleName(dialog.folder, first)));
       case "move-list":
@@ -175,4 +183,4 @@ export function TreeDialog({ dialog, onClose, tree, workspaceSlug, projectId }: 
       </form>
     </MawesiModal>
   );
-}
+});
