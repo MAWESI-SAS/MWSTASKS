@@ -9,6 +9,7 @@ from plane_mawesi.auth import views as auth
 from plane_mawesi.views import properties as pr
 from plane_mawesi.views import table as tb
 from plane_mawesi.views import timers as tm
+from plane_mawesi.views import wiki as wk
 from plane_mawesi.views import worklogs as w
 
 handler404 = "plane.app.views.error_404.custom_404_view"
@@ -44,6 +45,7 @@ urlpatterns = [
     *_routes("api/mawesi/", w.IssueWorklogsEndpoint, w.WorklogDetailEndpoint, w.WorklogTotalsEndpoint, w.WorklogReportEndpoint, ""),
     *_routes("api/v1/mawesi/", w.IssueWorklogsKeyEndpoint, w.WorklogDetailKeyEndpoint, w.WorklogTotalsKeyEndpoint, w.WorklogReportKeyEndpoint, "-key"),
     path(f"api/mawesi/{PROJECT}/table/", tb.ProjectTableEndpoint.as_view(), name="mawesi-table"),
+    path("api/mawesi/workspaces/<str:slug>/wiki/", wk.WikiEndpoint.as_view(), name="mawesi-wiki"),
     # Cronómetro: solo la web (lo usa una persona desde el navegador).
     path("api/mawesi/workspaces/<str:slug>/timer/", tm.CurrentTimerEndpoint.as_view(), name="mawesi-timer"),
     path("api/mawesi/workspaces/<str:slug>/timer/stop/", tm.StopTimerEndpoint.as_view(), name="mawesi-timer-stop"),

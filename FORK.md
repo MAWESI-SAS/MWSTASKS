@@ -44,6 +44,10 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
   (`PROJECT_LAYOUT`), así `ProjectAuthWrapper` controla el acceso y carga estados y módulos.
 - El aviso del cronómetro (`worklog/running-timer.tsx`) se monta en el envoltorio de `top-navigation-root`, fuera de
   `.mawesi-topbar` (que pinta todo en blanco).
+- Wiki: `:workspaceSlug/mawesi/wiki` (misma cadena de layouts que Horas) + ítem "Wiki" en
+  `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (`registerWikiNav`; si no está fijado, Plane lo pone en "More").
+  API `GET /api/mawesi/workspaces/<slug>/wiki/?q=` (`views/wiki.py`): Páginas de los proyectos donde la persona es
+  admin o miembro, sin archivadas, privadas solo de su dueño; busca sin tildes con `translate()` de Postgres.
 - `ext/nav.ts` agrega "Campos" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
   `PROJECT_SETTINGS_ICONS` (objetos exportados de Plane, mutables).
 - `ext/nav.ts` agrega "Horas" a `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (arreglo exportado de Plane). Aparece

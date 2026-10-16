@@ -31,6 +31,20 @@ export const registerNav = () => {
   });
 };
 
+export const MAWESI_WIKI_KEY = "mawesi_wiki";
+
+/** "Wiki" en la misma sección: buscador sobre las Páginas de todos los proyectos. */
+export const registerWikiNav = () => {
+  if (WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS.some((i) => i.key === MAWESI_WIKI_KEY)) return;
+  WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS.push({
+    key: MAWESI_WIKI_KEY,
+    labelTranslationKey: "Wiki",
+    href: "/mawesi/wiki/",
+    access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
+    highlight: (pathname: string, url: string) => pathname.includes(url),
+  });
+};
+
 export const MAWESI_FIELDS_KEY = "mawesi_fields";
 
 /** "Campos" en Configuración del proyecto → Estructura de trabajo (objetos exportados de Plane, mutables). */

@@ -32,6 +32,9 @@ export const extendedRoutes: RouteConfigEntry[] = [
         layout("../ext/pages/worklog-report/layout.tsx", [
           route(":workspaceSlug/mawesi/horas", "../ext/pages/worklog-report/page.tsx"),
         ]),
+        layout("../ext/pages/wiki/layout.tsx", [
+          route(":workspaceSlug/mawesi/wiki", "../ext/pages/wiki/page.tsx"),
+        ]),
         // Dentro del layout del proyecto: ProjectAuthWrapper controla el acceso y carga estados y módulos.
         layout(PROJECT_LAYOUT, [
           layout("../ext/pages/table/layout.tsx", [
