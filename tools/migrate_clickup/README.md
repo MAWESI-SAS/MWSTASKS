@@ -106,3 +106,21 @@ docker run --rm --env-file sync.env -v "$PWD/data:/data" mwstasks-clickup-sync:l
 ```
 
 La primera corrida necesita `--since`, que marca desde cuándo buscar cambios. Las siguientes lo toman de `state.json`.
+
+## Docs de ClickUp → Páginas
+
+ClickUp sigue siendo solo lectura. La API v1 de Plane no tiene Páginas, así que va en 2 pasos:
+
+```bash
+# 1. Armar el paquete (pages.json + images/), carpeta 700: puede traer datos sensibles
+CLICKUP_TOKEN=... python -m tools.migrate_clickup.docs --config sync.json --out /tmp/clickup-docs
+# 2. Cargarlo dentro del contenedor api
+docker cp /tmp/clickup-docs <api>:/tmp/clickup-docs
+docker exec -i -e SLUG=mawesi -e OWNER=<email-admin> -e BUNDLE=/tmp/clickup-docs -e WEB_BASE=https://tasks.mawesi.online \
+  <api> python manage.py shell < tools/migrate_clickup/pages_shell.py
+```
+
+- Un doc = una Página; las sub-páginas son secciones. Docs vacíos y plantillas de ClickUp no se copian.
+- Doc de una tarea → Página en el proyecto de la tarea + link "Doc: …" en la tarea.
+- Imágenes y archivos de ClickUp se copian (hasta 100 MB).
+- Idempotente: una Página ya cargada no se toca (para traer docs nuevos, volver a correr ambos pasos).

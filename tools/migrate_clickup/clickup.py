@@ -17,12 +17,12 @@ class ClickUp:
         self._last = 0.0
         self.calls = 0
 
-    def get(self, path: str, **params):
+    def get(self, path: str, base: str = BASE, **params):
         wait = self.min_interval - (time.monotonic() - self._last)
         if wait > 0:
             time.sleep(wait)
         query = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None}, doseq=True)
-        req = urllib.request.Request(f"{BASE}{path}{'?' + query if query else ''}", headers={"Authorization": self.token})
+        req = urllib.request.Request(f"{base}{path}{'?' + query if query else ''}", headers={"Authorization": self.token})
         for attempt in range(5):
             self._last = time.monotonic()
             self.calls += 1
