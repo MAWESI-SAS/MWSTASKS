@@ -14,6 +14,8 @@ export const REPLACEMENTS: Record<string, string> = {
   "components/workspace/sidebar/project-navigation": "overrides/workspace/project-navigation.tsx",
   "components/issues/issue-layouts/properties/all-properties": "overrides/issues/all-properties.tsx",
   "components/navigation/top-navigation-root": "overrides/navigation/top-navigation-root.tsx",
+  // Cover del perfil con API en el mismo origen (Plane manda URL relativa a un URLField)
+  "helpers/cover-image.helper": "overrides/helpers/cover-image.ts",
   // Marca MWSTASKS by MAWESI
   "components/common/logo-spinner": "overrides/common/logo-spinner.tsx",
   "app/(all)/[workspaceSlug]/(projects)/star-us-link": "overrides/projects/star-us-link.tsx",

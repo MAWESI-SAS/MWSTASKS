@@ -28,6 +28,7 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
 | `components/navigation/top-navigation-root` | `overrides/navigation/top-navigation-root.tsx`: envuelve la barra superior en `.mawesi-topbar` (`display: contents`, sin cambiar el layout) para pintarla en blanco sobre el gradiente |
 | `components/workspace/sidebar/project-navigation` | `overrides/workspace/project-navigation.tsx`: pasa la prop `additionalNavigationItems` (existe en Plane, CE no la usa) con el ítem "Tabla" y dibuja debajo el árbol "Carpeta > Lista" (`folders/module-tree.tsx`), armado con los módulos `"Carpeta / Lista"`. Solo en el modo de menú "acordeón" (el de por defecto) |
 | `components/issues/issue-layouts/properties/all-properties` | `overrides/issues/all-properties.tsx`: chip de horas al final de las propiedades de la tarjeta (tablero y lista). El contenedor de Plane queda en `contents` para compartir el flex. Los totales se piden en lote por proyecto (`worklog/totals.ts`) |
+| `helpers/cover-image.helper` | `overrides/helpers/cover-image.ts`: `handleCoverImageChange` completa `cover_image` con `window.location.origin` cuando sale relativa (con `API_BASE_URL=""` Plane manda `/api/assets/...` y `User.cover_image` es URLField → 400 al cambiar el cover del perfil). Quitar si Plane lo arregla |
 | `hooks/oauth/extended` | `overrides/auth/oauth-extended.tsx`: punto de extensión de Plane para logins extra (en CE devuelve vacío). Suma "Continue with Microsoft" si `GET /api/mawesi/auth-providers/` dice que está configurado |
 
 ## Rutas y menú
@@ -126,6 +127,8 @@ historial core (hoy no hay guests).
 - React error #418 (hidratación): 38 en la home, **idéntico** con la web oficial `v1.4.2`.
 - El worker manda métricas a `telemetry.plane.so` por defecto.
 - `GET .../issues/<id>/history/` **sin** `activity_type` da 500 siempre (`app/views/issue/activity.py:81-84` ordena instancias con `instance["created_at"]`). La web siempre manda `activity_type`, así que no afecta a usuarios. Nuestras filas `field="worklog"` salen con `?activity_type=issue-property`.
+
+- Cambiar el cover del perfil da `PATCH /api/users/me/` 400 si la web se compila sin `VITE_API_BASE_URL` (mismo origen): `getFileURL` devuelve ruta relativa y `User.cover_image` es URLField. Lo tapa `overrides/helpers/cover-image.ts`.
 
 ## Canary contra `preview` (próxima v1.5) — 2026-10-14
 

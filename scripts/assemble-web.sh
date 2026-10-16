@@ -11,7 +11,8 @@ have="$(git -C "$PLANE" describe --tags --exact-match 2>/dev/null || echo '?')"
 rm -rf "$WEB/ext"
 cp -r "$ROOT/web/ext" "$WEB/ext"
 cp "$ROOT/web/vite.ext.config.ts" "$WEB/"
-# tsconfig.ext.json se genera desde el tsconfig de Plane: copia sus "paths" y agrega "@upstream/*" = "@/*".
+# tsconfig.ext.json se genera desde el tsconfig de Plane: copia sus "paths" y agrega "@upstream/*" con las mismas raíces
+# que busca vite.ext.config.ts (AT_ROOTS: "@/*" y la raíz de apps/web, p. ej. helpers/).
 python3 -I - "$WEB" <<'PY'
 import json, re, sys, pathlib
 web = pathlib.Path(sys.argv[1])
@@ -19,7 +20,7 @@ raw = (web / "tsconfig.json").read_text()
 raw = re.sub(r"//.*", "", raw)                      # tsconfig admite comentarios
 raw = re.sub(r",(\s*[}\]])", r"\1", raw)            # y comas finales
 paths = dict(json.loads(raw)["compilerOptions"]["paths"])
-paths["@upstream/*"] = paths["@/*"]
+paths["@upstream/*"] = list(dict.fromkeys(paths["@/*"] + ["./*"]))
 cfg = {
     "extends": "./tsconfig.json",
     "compilerOptions": {"noEmit": True, "composite": False, "incremental": False, "paths": paths},
