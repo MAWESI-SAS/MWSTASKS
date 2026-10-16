@@ -54,7 +54,9 @@ class FakeCU:
                  "creator": {"id": 8}, "date_created": "1700000000000", "url": "https://app.clickup.com/t/86abc"}
             return {"tasks": [t] if p["archived"] == "false" else [], "last_page": True}
         if path == "/task/86abc":
-            return {"id": "86abc", "attachments": [{"id": "att1", "title": "video.mp4", "url": FILE}]}
+            return {"id": "86abc", "attachments": [{"id": "att1", "title": "video.mp4", "url": FILE, "url_w_query": f"{FILE}?view=open",
+                                                    "thumbnail_small": FILE.replace(".mp4", "_small.png")}],
+                    "markdown_description": f"ver {FILE}?view=open"}
         if path == "/task/86abc/comment":
             start = int(p.get("start", 10**9))
             page = [c for c in self.comments if int(c["date"]) <= start][:25]
@@ -88,7 +90,7 @@ def test_respaldo_completo_y_retomable(tmp_path, monkeypatch):
 
     rec = json.loads((tmp_path / "tasks" / "86" / "86abc.json").read_text())
     assert len(rec["comments"]) == 30 and rec["comments"][0]["replies"] == [{"id": "r1", "user": {"id": 11}}]
-    assert (tmp_path / "files" / "86abc" / "att1-video.mp4").exists()
+    assert [p.name for p in (tmp_path / "files" / "86abc").iterdir()] == ["att1-video.mp4"]  # sin copias ni miniaturas
     assert (tmp_path / "docs" / "d1.json").exists() and not (tmp_path / "docs" / "d2.json").exists()
     assert len(list((tmp_path / "docs" / "files").iterdir())) == 1
     rows = list(csv.reader((tmp_path / "index.csv").open(encoding="utf-8-sig"), delimiter=";"))

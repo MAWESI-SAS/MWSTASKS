@@ -195,13 +195,17 @@ class Backup:
 
     def files(self, tid: str, rec: dict) -> list[str]:
         folder = self.p("files", tid)
-        names, by_url = [], {}
-        for a in rec["task"].get("attachments") or []:
+        # Clave sin query: ClickUp repite cada adjunto como url, url_w_query (?view=open) y miniaturas.
+        key = lambda u: u.split("?", 1)[0]
+        names, by_key = [], {}
+        attachments = rec["task"].get("attachments") or []
+        for a in attachments:
             if a.get("url"):
-                by_url[a["url"]] = f"{a['id']}-{safe_name(a.get('title') or a['url'].rsplit('/', 1)[-1])}"
-        for u in file_urls(rec):
-            by_url.setdefault(u, url_name(u))
-        for url, name in by_url.items():
+                by_key[key(a["url"])] = (a["url"], f"{a['id']}-{safe_name(a.get('title') or a['url'].rsplit('/', 1)[-1])}")
+        rest = {"task": {k: v for k, v in rec["task"].items() if k != "attachments"}, "comments": rec["comments"]}
+        for u in file_urls(rest):
+            by_key.setdefault(key(u), (u, url_name(key(u))))
+        for url, name in by_key.values():
             self.download(url, os.path.join(folder, name))
             names.append(name)
         return names
