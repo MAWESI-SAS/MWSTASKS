@@ -28,6 +28,7 @@ export { useUser, useUserPermissions } from "@/hooks/store/user";
 export { useMember } from "@/hooks/store/use-member";
 export { useIssueDetail } from "@/hooks/store/use-issue-detail";
 export { ButtonAvatars } from "@/components/dropdowns/member/avatar";
+export { MemberDropdown } from "@/components/dropdowns/member/dropdown";
 export { IssueActivityBlockComponent } from "@/components/issues/issue-detail/issue-activity/activity/actions";
 export { useProject } from "@/hooks/store/use-project";
 export { useModule } from "@/hooks/store/use-module";

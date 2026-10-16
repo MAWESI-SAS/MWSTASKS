@@ -4,7 +4,8 @@
  *
  * Árbol "Carpeta > Lista" debajo de cada proyecto en el menú lateral (como la jerarquía de ClickUp).
  * Es la ÚNICA forma de ver y ordenar las listas: el ítem "Módulos" de Plane se oculta (ver project-navigation).
- * Cada lista abre su módulo. Desde los menús "⋯" se crean, renombran, mueven y borran carpetas y listas.
+ * Cada lista abre su módulo. Desde los menús "⋯" se crean, renombran, mueven y borran carpetas y listas, y se crean
+ * tareas desde una plantilla.
  * Lo abierto/cerrado se recuerda por navegador.
  */
 import { useState } from "react";
@@ -12,9 +13,11 @@ import type { ReactNode } from "react";
 import { observer } from "mobx-react";
 import { Link, useLocation, useNavigate } from "react-router";
 import useSWR from "swr";
-import { ChevronRight, Folder, FolderOpen, FolderInput, List, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, Folder, FolderOpen, FolderInput, LayoutTemplate, List, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useT } from "../i18n";
 import { CustomMenu, EUserPermissions, IconButton, SidebarNavItem, TOAST_TYPE, setToast, useModule, useProject, useUser, useUserPermissions } from "../plane";
+import { ApplyTemplateDialog } from "../templates/apply-dialog";
+import type { TApplyTarget } from "../templates/apply-dialog";
 import { MawesiConfirm } from "../ui/confirm";
 import { groupModules } from "./group";
 import type { TList } from "./group";
@@ -93,6 +96,7 @@ export const ModuleTree = observer(function ModuleTree({ workspaceSlug, projectI
   const [dialog, setDialog] = useState<TTreeDialog | null>(null);
   const [toDelete, setToDelete] = useState<TDelete | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [apply, setApply] = useState<TApplyTarget | null>(null);
   // Plane solo carga los módulos del proyecto abierto: una llamada trae los de todo el workspace.
   useSWR(workspaceSlug ? ["mawesi-ws-modules", workspaceSlug] : null, () => moduleStore.fetchWorkspaceModules(workspaceSlug), {
     revalidateOnFocus: false,
@@ -132,6 +136,7 @@ export const ModuleTree = observer(function ModuleTree({ workspaceSlug, projectI
     const canDelete = isAdmin || (!!currentUser?.id && l.created_by === currentUser.id);
     const actions: TAction[] = canEdit
       ? [
+          { key: "new-task", label: t("tpl.new_task"), icon: LayoutTemplate, onClick: () => setApply({ kind: "new", moduleId: l.id }) },
           { key: "rename", label: t("tree.rename"), icon: Pencil, onClick: () => setDialog({ kind: "rename-list", folder, list: l }) },
           { key: "move", label: t("tree.move"), icon: FolderInput, onClick: () => setDialog({ kind: "move-list", folder, list: l }) },
           ...(canDelete ? [{ key: "delete", label: t("tree.delete"), icon: Trash2, danger: true, onClick: () => setToDelete({ folder, list: l, lists: [] }) }] : []),
@@ -166,6 +171,7 @@ export const ModuleTree = observer(function ModuleTree({ workspaceSlug, projectI
               ? [
                   { key: "new-folder", label: t("tree.new_folder"), icon: Folder, onClick: () => setDialog({ kind: "new-folder" }) },
                   { key: "new-list", label: t("tree.new_list"), icon: List, onClick: () => setDialog({ kind: "new-list", folder: "" }) },
+                  { key: "new-task", label: t("tpl.new_task"), icon: LayoutTemplate, onClick: () => setApply({ kind: "new" }) },
                 ]
               : []
           }
@@ -202,6 +208,7 @@ export const ModuleTree = observer(function ModuleTree({ workspaceSlug, projectI
         );
       })}
       {tree.loose.map((l) => listRow(l, ""))}
+      <ApplyTemplateDialog target={apply} onClose={() => setApply(null)} workspaceSlug={workspaceSlug} projectId={projectId} />
       <TreeDialog dialog={dialog} onClose={() => setDialog(null)} workspaceSlug={workspaceSlug} projectId={projectId} />
       <MawesiConfirm
         isOpen={!!toDelete}

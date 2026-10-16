@@ -10,6 +10,7 @@ import type { ComponentProps } from "react";
 import { IssueDetailsSidebar as Upstream } from "@upstream/components/issues/issue-detail/sidebar";
 import { PropertiesPanel } from "../../properties/properties-panel";
 import { SlaPanel } from "../../sla/sla-panel";
+import { TemplateSubtasksButton } from "../../templates/subtasks-button";
 import { WorklogPanel } from "../../worklog/worklog-panel";
 
 export const IssueDetailsSidebar = (props: ComponentProps<typeof Upstream>) => (
@@ -19,6 +20,7 @@ export const IssueDetailsSidebar = (props: ComponentProps<typeof Upstream>) => (
     </div>
     <div data-mawesi="sidebar-panel" className="max-h-[55%] shrink-0 space-y-4 overflow-y-auto border-t border-subtle px-6 py-4">
       <SlaPanel workspaceSlug={props.workspaceSlug} projectId={props.projectId} issueId={props.issueId} />
+      <TemplateSubtasksButton workspaceSlug={props.workspaceSlug} projectId={props.projectId} issueId={props.issueId} disabled={!props.isEditable} />
       <PropertiesPanel workspaceSlug={props.workspaceSlug} projectId={props.projectId} issueId={props.issueId} disabled={!props.isEditable} />
       <WorklogPanel workspaceSlug={props.workspaceSlug} projectId={props.projectId} issueId={props.issueId} disabled={!props.isEditable} />
     </div>

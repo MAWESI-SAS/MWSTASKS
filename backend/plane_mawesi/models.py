@@ -155,3 +155,29 @@ class SlaPolicy(ProjectBaseModel):
 
     def __str__(self):
         return f"SLA {self.project_id}"
+
+
+class TaskTemplate(ProjectBaseModel):
+    """Plantilla de tarea: prioridad, lista, responsables y checklist de la tarea + subtareas ya armadas
+    (p. ej. las fases de un requerimiento de TQ). Se aplica con plane_mawesi/templates.py."""
+
+    name = models.CharField(max_length=120)
+    priority = models.CharField(max_length=16, default="none")
+    module = models.ForeignKey("db.Module", on_delete=models.SET_NULL, null=True, blank=True, related_name="mawesi_templates")
+    assignee_ids = models.JSONField(default=list)
+    checklist = models.JSONField(default=list)  # ["PR creado", ...]
+    subtasks = models.JSONField(default=list)  # [{"name": "Diseño", "priority": "none", "checklist": [...]}]
+    # "Diseño - <nombre de la tarea>", como se nombraban las fases en ClickUp.
+    add_parent_name = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "mawesi_task_templates"
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "name"], condition=models.Q(deleted_at__isnull=True), name="mawesi_template_unique_name"
+            ),
+        ]
+
+    def __str__(self):
+        return self.name

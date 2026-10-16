@@ -53,7 +53,12 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
   `…/settings/projects/:projectId/mawesi-sla` (ítem "SLA" junto a "Campos"). Chip en la tarjeta (envoltorio de
   `all-properties`, pedidos juntados con `lib/batcher.ts`) y panel "Tiempo y SLA" en el peek y el detalle. El tiempo
   por estado sale de `IssueActivity(field="state")`; los cerrados usan `Issue.completed_at`.
-- `ext/nav.ts` agrega "Campos" y "SLA" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
+- Plantillas de tarea (`plane_mawesi/templates.py`, `views/templates.py`, tabla `mawesi_task_templates`): prioridad,
+  lista, responsables, checklist y subtareas. Las tareas se crean con `IssueCreateSerializer` de Plane + su
+  `issue_activity` (al hacer commit), igual que crearlas a mano. Las subtareas se crean al revés porque Plane las lista
+  de la más nueva a la más vieja. Se configuran en `…/settings/projects/:projectId/mawesi-plantillas`; se usan desde el
+  menú "⋯" de una lista del árbol (tarea nueva) y con el botón del panel del detalle (subtareas para una tarea existente).
+- `ext/nav.ts` agrega "Campos", "SLA" y "Plantillas" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
   `PROJECT_SETTINGS_ICONS` (objetos exportados de Plane, mutables).
 - `ext/nav.ts` agrega "Horas" a `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (arreglo exportado de Plane). Aparece
   en "More" (como Vistas/Análisis) y cada usuario puede fijarlo. El label no existe en el i18n de Plane: se muestra tal cual.

@@ -13,3 +13,5 @@ finally:
 
 INSTALLED_APPS = [*INSTALLED_APPS, "plane_mawesi"]
 ROOT_URLCONF = "plane_mawesi.urls"
+# Plane arma los links de los avisos con WEB_URL (en prod viene del .env).
+WEB_URL = "http://localhost"
