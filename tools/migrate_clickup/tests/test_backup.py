@@ -101,3 +101,14 @@ def test_respaldo_completo_y_retomable(tmp_path, monkeypatch):
     before = cu.calls
     B.Backup(cu, str(tmp_path), "1", "2018-01-01").run()
     assert cu.calls - before == 3
+
+
+def test_adjuntos_grandes_del_respaldo(tmp_path):
+    from tools.migrate_clickup import big_files
+    big = {"id": "att2", "title": "Grabación de la reunión.mp4", "size": str(116 * 1048576), "url": FILE}
+    small = {"id": "att3", "title": "captura.png", "size": "2000", "url": FILE}
+    B.write_json(str(tmp_path / "tasks" / "86" / "86abc.json"), {"task": {"id": "86abc", "attachments": [big, small]}, "comments": []})
+    (tmp_path / "files" / "86abc").mkdir(parents=True)
+    (tmp_path / "files" / "86abc" / "att2-Grabación de la reunión.mp4").write_bytes(b"x")
+    assert big_files.find(str(tmp_path), 100) == [{"task": "86abc", "name": "Grabación de la reunión.mp4", "mb": 116,
+                                                   "path": "files/86abc/att2-Grabación de la reunión.mp4", "saved": True}]

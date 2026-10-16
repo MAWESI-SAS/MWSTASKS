@@ -150,3 +150,13 @@ docker run -d --name clickup-backup --env-file sync.env -v /home/mauricio/backup
 ```
 
 Para buscar algo: abrir `index.csv` con Excel (una fila por tarea, con la ruta de su JSON y sus archivos).
+
+Adjuntos que no entraron por tamaño (> 100 MB): se buscan en el respaldo y cada tarea recibe un comentario con la ruta.
+
+```bash
+docker run --rm -v <respaldo>:/out --entrypoint python mwstasks-clickup-sync:local \
+  -m tools.migrate_clickup.big_files --backup /out > big_files.json
+docker cp big_files.json <api>:/tmp/big_files.json
+docker exec -i -e SLUG=mawesi -e FILES=/tmp/big_files.json -e ACTOR=<email> -e WHERE="mwsws15:<respaldo>" \
+  <api> python manage.py shell < tools/migrate_clickup/big_files_shell.py
+```
