@@ -209,6 +209,8 @@ def main():
     ap.add_argument("--max-file-mb", type=int, default=100)
     ap.add_argument("--plane-interval", type=float, default=1.05, help="segundos entre pedidos (límite 60/minute)")
     ap.add_argument("--prune", action="store_true")
+    ap.add_argument("--tasks", default="", help="ids de ClickUp separados por coma: vuelve a copiar solo esas tareas "
+                                                "(p. ej. comentarios que faltaron); no mueve el punto de la copia incremental")
     a = ap.parse_args()
     cfg, state = load(a.config, None), load(a.state, {})
     cu = ClickUp(os.environ["CLICKUP_TOKEN"])
@@ -224,7 +226,10 @@ def main():
         state["since"] = int(time.mktime(time.strptime(a.since, "%Y-%m-%d %H:%M")) * 1000)
     started = int(time.time() * 1000)
     spaces = sorted({str(p["space"]) for p in cfg["projects"]})
-    changed = list(cu.team_tasks(a.team, spaces, updated_gt=state["since"] - OVERLAP_MS))
+    if a.tasks:
+        changed = [cu.get(f"/task/{tid.strip()}", include_markdown_description="true") for tid in a.tasks.split(",") if tid.strip()]
+    else:
+        changed = list(cu.team_tasks(a.team, spaces, updated_gt=state["since"] - OVERLAP_MS))
     out, failed = {"hora": stamp, "cambiadas en ClickUp": len(changed)}, False
     for p in cfg["projects"]:
         mine = [t for t in changed if M.in_scope(t, p["space"], set(p.get("folders", [])))]
@@ -237,7 +242,7 @@ def main():
         except Exception as e:  # noqa: BLE001 - un proyecto con error no frena a los demás
             failed = True
             out[key] = {"error": str(e)[:300]}
-    if not failed:  # si algo falló, la próxima corrida vuelve a pedir desde el mismo punto
+    if not failed and not a.tasks:  # si algo falló, la próxima corrida vuelve a pedir desde el mismo punto
         state["since"] = started
     save(a.state, state)
     print(json.dumps(out, ensure_ascii=False))

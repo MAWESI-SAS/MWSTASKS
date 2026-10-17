@@ -160,3 +160,7 @@ docker cp big_files.json <api>:/tmp/big_files.json
 docker exec -i -e SLUG=mawesi -e FILES=/tmp/big_files.json -e ACTOR=<email> -e WHERE="mwsws15:<respaldo>" \
   <api> python manage.py shell < tools/migrate_clickup/big_files_shell.py
 ```
+
+Comentarios: ClickUp los devuelve de a 25. Hasta `2026-10-17` la migración y la copia incremental tomaban solo los 25
+más nuevos (12 tareas quedaron incompletas). Para volver a copiar tareas puntuales sin mover la copia incremental:
+`run.sh --tasks <id>,<id>` (salta lo que ya está).

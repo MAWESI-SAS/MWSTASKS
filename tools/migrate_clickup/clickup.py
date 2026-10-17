@@ -8,6 +8,20 @@ import urllib.parse
 import urllib.request
 
 BASE = "https://api.clickup.com/api/v2"
+COMMENT_PAGE = 25  # ClickUp devuelve los comentarios de a 25, del más nuevo al más viejo
+
+
+def all_comments(cu, path: str) -> list:
+    """Todas las páginas de comentarios (ClickUp pagina con start=<fecha> y start_id=<id> del más viejo)."""
+    out, seen, params = [], set(), {}
+    while True:
+        page = cu.get(path, **params).get("comments", [])
+        new = [c for c in page if c["id"] not in seen]
+        seen.update(c["id"] for c in new)
+        out += new
+        if len(page) < COMMENT_PAGE or not new:
+            return out
+        params = {"start": page[-1]["date"], "start_id": page[-1]["id"]}
 
 
 class ClickUp:
@@ -97,7 +111,8 @@ class ClickUp:
                 raise
 
     def comments(self, task_id):
-        return self.get(f"/task/{task_id}/comment").get("comments", [])
+        """Todos los comentarios de la tarea, no solo los 25 más nuevos."""
+        return all_comments(self, f"/task/{task_id}/comment")
 
     def time_entries(self, team_id, list_id, start_ms, end_ms, assignees):
         return self.get(f"/team/{team_id}/time_entries", list_id=list_id, start_date=start_ms, end_date=end_ms,

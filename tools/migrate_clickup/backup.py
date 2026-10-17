@@ -30,11 +30,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-from .clickup import ClickUp
+from .clickup import ClickUp, all_comments
 
 V3 = "https://api.clickup.com/api/v3"
 FILE_URL = re.compile(r"https://t\d+\.p\.clickup-attachments\.com/[^\s\"'\\)\]>]+")
-COMMENT_PAGE = 25  # ClickUp devuelve los comentarios de a 25, del más nuevo al más viejo
 CHUNK = 1 << 20
 
 
@@ -61,19 +60,6 @@ def file_urls(record) -> list[str]:
         if u not in seen:
             seen.append(u)
     return seen
-
-
-def all_comments(cu: ClickUp, path: str) -> list:
-    """Todas las páginas de comentarios (ClickUp pagina con start=<fecha> y start_id=<id> del más viejo)."""
-    out, params = [], {}
-    while True:
-        page = cu.get(path, **params).get("comments", [])
-        new = [c for c in page if c["id"] not in {o["id"] for o in out}]
-        out += new
-        if len(page) < COMMENT_PAGE or not new:
-            return out
-        oldest = page[-1]
-        params = {"start": oldest["date"], "start_id": oldest["id"]}
 
 
 def write_json(path: str, data) -> None:
