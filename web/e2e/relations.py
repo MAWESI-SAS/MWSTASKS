@@ -4,7 +4,7 @@ hasta abrir otra tarea.
 Uso: RUN=<id> CHROME=<ruta-opcional> python3 web/e2e/relations.py <carpeta-capturas>
 Necesita el workspace de smoke.py con el mismo RUN (mawesi-qa-<RUN>, proyecto CQA).
 """
-import os, sys
+import os, re, sys
 from playwright.sync_api import expect, sync_playwright
 
 BASE, OUT, RUN = "http://localhost:8088", sys.argv[1], os.environ.get("RUN", "1")
@@ -36,7 +36,7 @@ with sync_playwright() as p:
     pg.screenshot(path=f"{OUT}/relations-detalle.png")
 
     # 2. La persona la cierra: queda cerrada
-    pg.get_by_text("Relaciones", exact=False).first.click()
+    pg.get_by_role("button", name=re.compile(r"^(Relaciones|Relations)\b")).first.click()  # sin depender del idioma
     expect(other).to_be_hidden()
     pg.wait_for_timeout(1500)
     expect(other).to_be_hidden()
