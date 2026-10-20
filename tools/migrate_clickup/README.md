@@ -19,7 +19,7 @@ Copia un espacio de ClickUp a un proyecto de MWSTASKS.
 | Subtareas | Work item padre |
 | Descripción (markdown) + checklists | Descripción + link a la tarea original |
 | Comentarios y respuestas | Comentarios ("Autor original: X — fecha") |
-| Campos propios | Campos MWSTASKS (`/api/v1/mawesi/…/properties/`) |
+| Campos propios | Campos MWSTASKS (`/api/v1/mawesi/…/properties/`). Solo los que tienen algún valor: un campo sin uso no se crea (ni vuelve a aparecer si se borró en MWSTASKS) |
 | Tiempo estimado (`--estimate`) | Campo "Estimado (h)" |
 | Horas registradas | Horas MWSTASKS (marca `[clickup:<id>]` en la nota) |
 
