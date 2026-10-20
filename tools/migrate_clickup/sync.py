@@ -24,7 +24,7 @@ import time
 
 from tools.migrate_clickup import mapping as M
 from tools.migrate_clickup.clickup import ClickUp
-from tools.migrate_clickup.migrate import Migration
+from tools.migrate_clickup.migrate import Migration, send_relations
 from tools.migrate_clickup.plane import Plane, PlaneError
 
 OVERLAP_MS = 5 * 60 * 1000  # se vuelve a pedir un margen: relojes distintos y tareas editadas durante la corrida
@@ -150,7 +150,7 @@ class ProjectSync(Migration):
             self.read_clickup()
             self.people(); self.project()
             self.states(); self.labels(); self.cycles_and_modules(); self.properties()
-            self.issues(); self.grouping(); self.values(); self.comments()
+            self.issues(); self.grouping(); self.relations(); self.values(); self.comments()
         else:  # sin tareas cambiadas: solo horas nuevas
             self.tasks, self.issue_by_task = {}, {}
             self.people(); self.project()
@@ -162,11 +162,13 @@ def prune(cu, pl, cfg, args):
     """Marca en MWSTASKS las tareas que ya no están en ClickUp. Lee todo: correr de noche."""
     report = collections.Counter()
     alive = collections.defaultdict(set)
+    pairs = set()
     spaces = sorted({str(p["space"]) for p in cfg["projects"]})
     for t in cu.team_tasks(args.team, spaces):
         for p in cfg["projects"]:
             if M.in_scope(t, p["space"], set(p.get("folders", []))):
                 alive[p["identifier"]].add(t["id"])
+                pairs |= M.relation_pairs([t])
     projects = {p["identifier"]: p["id"] for p in pl.all(pl.ws("projects/"))}
     for ident in sorted({p["identifier"] for p in cfg["projects"]}):
         pid = projects.get(ident)
@@ -180,6 +182,10 @@ def prune(cu, pl, cfg, args):
                 continue
             pl.write("PATCH", pl.proj(pid, f"issues/{i['id']}/"), {"labels": list(i.get("labels") or []) + [label]})
             report[f"{ident}: marcadas como borradas"] += 1
+    # Relaciones: ClickUp no siempre marca la tarea como cambiada al unirla con otra; de noche se revisan todas.
+    # Van al final: si fallan, las marcas de "Borrada en ClickUp" ya quedaron.
+    for key, n in send_relations(pl, pairs).items():
+        report[f"relaciones {key.replace('_', ' ')}"] += n
     return dict(report)
 
 

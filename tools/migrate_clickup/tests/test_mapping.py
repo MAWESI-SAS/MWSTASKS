@@ -106,3 +106,18 @@ def test_solo_cambios_reales():
     d = M.issue_changes(cur, same, True)
     assert d == {"description_html": "<p>x</p>", "description_binary": None}
     assert M.text_hash("a") == M.text_hash("a") != M.text_hash("b")
+
+
+def test_pares_de_relaciones():
+    # Ejemplo real: "Soporte TQ Octubre 2026" unida a sus incidentes, y un campo "BUGS" con una tarea.
+    soporte = {"id": "86bcbghkz", "linked_tasks": [
+        {"task_id": "86bbqryb2", "link_id": "86bcbghkz"}, {"task_id": "86bcbghkz", "link_id": "86bc4dtvm"}]}
+    incidente = {"id": "86bbqryb2", "linked_tasks": [{"task_id": "86bbqryb2", "link_id": "86bcbghkz"}]}
+    recurso = {"id": "r1", "custom_fields": [
+        {"type": "list_relationship", "value": [{"id": "86b3wa0hw", "name": "Bug 343254"}]},
+        {"type": "tasks", "value": None}, {"type": "short_text", "value": "86bxxxx"}]}
+    assert M.related_task_ids(soporte) == {"86bbqryb2", "86bc4dtvm"}
+    assert M.related_task_ids(recurso) == {"86b3wa0hw"}
+    assert M.related_task_ids({"id": "x"}) == set()
+    assert M.relation_pairs([soporte, incidente, recurso]) == {
+        ("86bbqryb2", "86bcbghkz"), ("86bc4dtvm", "86bcbghkz"), ("86b3wa0hw", "r1")}

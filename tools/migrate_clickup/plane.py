@@ -116,5 +116,8 @@ class Plane:
     def proj(self, project_id, rest=""):
         return self.ws(f"projects/{project_id}/{rest}")
 
+    def mawesi_ws(self, rest=""):
+        return f"/api/v1/mawesi/workspaces/{self.slug}/{rest}"
+
     def mawesi(self, project_id, rest=""):
         return f"/api/v1/mawesi/workspaces/{self.slug}/projects/{project_id}/{rest}"

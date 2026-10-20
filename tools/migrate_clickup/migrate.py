@@ -23,6 +23,18 @@ from tools.migrate_clickup.clickup import ClickUp
 from tools.migrate_clickup.plane import Plane, PlaneError
 
 ADMIN, MEMBER = 20, 15
+RELATIONS_PER_CALL = 1000  # igual que plane_mawesi.views.relations.MAX_PAIRS
+
+
+def send_relations(pl: Plane, pairs) -> collections.Counter:
+    """Pares de ids ClickUp -> relaciones "relacionada con". El endpoint solo crea las que faltan (idempotente)."""
+    out, pairs = collections.Counter(), sorted(pairs)
+    for k in range(0, len(pairs), RELATIONS_PER_CALL):
+        r = pl.write("POST", pl.mawesi_ws("relations/"),
+                     {"external_source": M.SOURCE, "pairs": [list(p) for p in pairs[k:k + RELATIONS_PER_CALL]]})
+        for key in ("creadas", "ya_estaban", "sin_tarea"):
+            out[key] += int((r or {}).get(key) or 0)
+    return out
 
 
 class Migration:
@@ -272,6 +284,16 @@ class Migration:
                 else:
                     self.warn("padre fuera del alcance migrado", t["id"])
 
+    def relations(self):
+        # "Linked tasks" y campos de relación. Las que apuntan a otro proyecto todavía sin migrar quedan
+        # "sin_tarea"; las completa la próxima corrida (o el --prune de la copia incremental).
+        pairs = M.relation_pairs(self.tasks.values())
+        if not pairs:
+            return
+        for key, n in send_relations(self.pl, pairs).items():
+            if n:
+                self.stats[f"relaciones {key.replace('_', ' ')}"] += n
+
     def _add_missing(self, kind, container_id, wanted):
         path = self.pl.proj(self.pid, f"{kind}s/{container_id}/{kind}-issues/")
         have = {x.get("id") or x.get("issue") for x in self.pl.all(path)}
@@ -487,7 +509,7 @@ class Migration:
         self.project()
         self.states(); self.labels(); self.cycles_and_modules(); self.properties()
         self.log("Estructura lista. Creando tareas…")
-        self.issues(); self.grouping()
+        self.issues(); self.grouping(); self.relations()
         self.log("Cargando valores de campos…"); self.values()
         if not self.a.skip_comments:
             self.log("Copiando comentarios y adjuntos…"); self.comments()

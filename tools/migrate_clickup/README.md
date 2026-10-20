@@ -25,7 +25,8 @@ Copia un espacio de ClickUp a un proyecto de MWSTASKS.
 
 | Adjuntos de las tareas | Adjuntos (respeta el límite de subida de la instancia; los más grandes quedan como aviso) |
 | Listas fuera de carpetas | Igual que las demás (`--folders "(sin carpeta)"` para elegirlas) |
-| Campos de relación con otras tareas | Texto con los nombres de las tareas |
+| Campos de relación con otras tareas | Texto con los nombres de las tareas + relación "relacionada con" |
+| Linked tasks ("related") | Relación "relacionada con" (también entre proyectos) |
 
 Horas: se piden para los miembros actuales **y** para todas las personas que aparecen en las tareas (ex empleados), desde 2020.
 
@@ -87,6 +88,7 @@ sigue trabajando en ClickUp.
   - agrega comentarios, adjuntos y valores de campos nuevos.
 - **Horas:** revisa una ventana de `--time-days` días (por defecto 45). ClickUp no marca la tarea como cambiada al cargar horas.
 - **`--prune`** (de noche): las tareas que ya no existen en ClickUp (borradas, archivadas o movidas fuera del alcance) reciben la etiqueta "Borrada en ClickUp". No se borra nada.
+- **Relaciones:** cada corrida manda las de las tareas cambiadas; `--prune` manda todas (ClickUp no siempre marca la tarea como cambiada al unirla con otra). Endpoint `POST /api/v1/mawesi/workspaces/<slug>/relations/` (admin del workspace): crea solo las que faltan, sin avisos, y no vuelve a crear una relación que alguien borró en MWSTASKS. Nunca borra.
 - **No hace:** editar ni borrar horas ya copiadas, y editar comentarios ya copiados.
 - **Estado:** `state.json` guarda la hora de la última corrida, la lista y la descripción de cada tarea, y las horas ya copiadas. Si un proyecto falla, la próxima corrida vuelve a pedir desde el mismo punto.
 - **Límite de la API:** pide a MWSTASKS cada 1,05 s, debajo de los 60/minute de `API_KEY_RATE_LIMIT`.

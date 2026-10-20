@@ -9,6 +9,7 @@ from plane_mawesi.auth import views as auth
 from plane_mawesi.views import automations as au
 from plane_mawesi.views import properties as pr
 from plane_mawesi.views import recurrence as rc
+from plane_mawesi.views import relations as rl
 from plane_mawesi.views import sla as sl
 from plane_mawesi.views import table as tb
 from plane_mawesi.views import templates as tp
@@ -68,6 +69,8 @@ urlpatterns = [
     path("api/mawesi/workspaces/<str:slug>/timer/stop/", tm.StopTimerEndpoint.as_view(), name="mawesi-timer-stop"),
     path(f"api/mawesi/{ISSUE}/timer/start/", tm.StartTimerEndpoint.as_view(), name="mawesi-timer-start"),
     *_property_routes("api/mawesi/", pr.PropertiesEndpoint, pr.PropertyDetailEndpoint, pr.IssueValuesEndpoint, pr.ValuesBatchEndpoint, ""),
+    # Relaciones en lote por id externo (migración y copia incremental desde ClickUp).
+    path("api/v1/mawesi/workspaces/<str:slug>/relations/", rl.RelationsBatchKeyEndpoint.as_view(), name="mawesi-relations-key"),
     *_property_routes("api/v1/mawesi/", pr.PropertiesKeyEndpoint, pr.PropertyDetailKeyEndpoint, pr.IssueValuesKeyEndpoint, pr.ValuesBatchKeyEndpoint, "-key"),
     *plane_urlpatterns,
 ]

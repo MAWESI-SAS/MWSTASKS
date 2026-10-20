@@ -21,7 +21,8 @@ FIELD_TYPES = {
     "short_text": "text", "text": "text", "email": "text", "phone": "text", "location": "text",
     "url": "url", "number": "number", "currency": "number", "emoji": "number", "date": "date",
     "checkbox": "checkbox", "drop_down": "select", "labels": "multi_select", "users": "member",
-    # Relaciones con otras tareas: se guardan como texto con los nombres (Plane CE no tiene campos de relación).
+    # Relaciones con otras tareas: texto con los nombres (Plane CE no tiene campos de relación) y, además,
+    # una relación "relacionada con" entre las tareas (relation_pairs).
     "list_relationship": "text", "tasks": "text",
 }
 MAX_TEXT = 2000  # igual que plane_mawesi.properties.MAX_TEXT
@@ -35,6 +36,24 @@ def clip(text: str) -> str:
 def related_names(raw) -> str:
     items = raw if isinstance(raw, list) else [raw]
     return "; ".join(str(i.get("name") or i.get("id")) if isinstance(i, dict) else str(i) for i in items)
+
+
+def related_task_ids(task) -> set:
+    """Tareas unidas a esta en ClickUp: "Linked tasks" y campos de relación con valor (p. ej. "BUGS")."""
+    out = set()
+    for link in task.get("linked_tasks") or []:
+        out |= {str(link.get("task_id") or ""), str(link.get("link_id") or "")}
+    for cf in task.get("custom_fields") or []:
+        if cf.get("type") in ("list_relationship", "tasks") and isinstance(cf.get("value"), list):
+            out |= {str(v.get("id") or "") for v in cf["value"] if isinstance(v, dict)}
+    out.discard("")
+    out.discard(str(task["id"]))
+    return out
+
+
+def relation_pairs(tasks) -> set:
+    """Pares (a, b) ordenados, sin repetir, para el endpoint de relaciones de MWSTASKS."""
+    return {(min(t["id"], o), max(t["id"], o)) for t in tasks for o in related_task_ids(t)}
 
 
 def ms_to_date(ms):
