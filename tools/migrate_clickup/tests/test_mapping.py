@@ -121,3 +121,13 @@ def test_pares_de_relaciones():
     assert M.related_task_ids({"id": "x"}) == set()
     assert M.relation_pairs([soporte, incidente, recurso]) == {
         ("86bbqryb2", "86bcbghkz"), ("86bc4dtvm", "86bcbghkz"), ("86b3wa0hw", "r1")}
+
+
+def test_solo_campos_usados():
+    tareas = [
+        {"custom_fields": [{"id": "f1", "value": "x"}, {"id": "f2", "value": None}, {"id": "f3", "value": []}]},
+        {"custom_fields": [{"id": "f4", "value": 0}, {"id": "f5", "value": ""}], "time_estimate": 3600000},
+        {"time_estimate": None},
+    ]
+    assert M.used_field_ids(tareas) == {"f1", "f4", "time_estimate"}
+    assert M.used_field_ids([{"time_estimate": 0}]) == set()

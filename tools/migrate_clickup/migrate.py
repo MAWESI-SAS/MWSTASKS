@@ -191,9 +191,13 @@ class Migration:
         fields = sorted(self.fields.values(), key=lambda f: f["name"].lower())
         if self.a.estimate:
             fields.append({"id": "time_estimate", "name": "Estimado (h)", "type": "number"})
+        used = M.used_field_ids(self.tasks.values())
         for i, f in enumerate(fields):
             kind = M.FIELD_TYPES.get(f["type"], "text")
             prop = existing.get(f["id"])
+            if prop is None and f["id"] not in used:
+                self.stats["campos sin uso (no se crean)"] += 1
+                continue
             if prop is None:
                 body = {"name": f["name"][:120], "type": kind, "sort_order": (i + 1) * 1000,
                         "external_source": M.SOURCE, "external_id": f["id"],

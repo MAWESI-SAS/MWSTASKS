@@ -51,6 +51,17 @@ def related_task_ids(task) -> set:
     return out
 
 
+def used_field_ids(tasks) -> set:
+    """Campos de ClickUp con algún valor en estas tareas ("time_estimate" si alguna tiene estimado).
+    Solo esos se crean en MWSTASKS: un campo sin uso no se crea (ni se vuelve a crear si alguien lo borró)."""
+    out = set()
+    for t in tasks:
+        out |= {cf["id"] for cf in t.get("custom_fields") or [] if cf.get("value") not in (None, "", [])}
+        if t.get("time_estimate"):
+            out.add("time_estimate")
+    return out
+
+
 def relation_pairs(tasks) -> set:
     """Pares (a, b) ordenados, sin repetir, para el endpoint de relaciones de MWSTASKS."""
     return {(min(t["id"], o), max(t["id"], o)) for t in tasks for o in related_task_ids(t)}
