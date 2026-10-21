@@ -8,9 +8,11 @@ import "./theme/fonts.css";
 import "./theme/mawesi-theme.generated.css";
 import "./theme/shell.css";
 import "./folders/tree.css";
-import { registerNav, registerProjectSettings, registerWikiNav } from "./nav";
+import "./board/card-style.css";
+import { registerNav, registerProjectSettings, registerWikiNav, registerWorkspaceSettings } from "./nav";
 
 registerNav();
 registerWikiNav();
 registerProjectSettings();
+registerWorkspaceSettings();
 (globalThis as Record<string, unknown>).__MAWESI_EXT__ = "MAWESI-REGISTER-OK";

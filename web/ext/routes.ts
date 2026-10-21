@@ -24,6 +24,9 @@ export const SETTINGS_CHAIN = [
   "./(all)/[workspaceSlug]/(settings)/settings/projects/[projectId]/layout.tsx",
 ] as const;
 
+/** Layout de Configuración del workspace (barra lateral + control de acceso por URL con WORKSPACE_SETTINGS_ACCESS). */
+export const WORKSPACE_SETTINGS_LAYOUT = "./(all)/[workspaceSlug]/(settings)/settings/(workspace)/layout.tsx";
+
 export const extendedRoutes: RouteConfigEntry[] = [
   route("mawesi/ping", "../ext/pages/ping.tsx"),
   layout(LAYOUT_CHAIN[0], [
@@ -40,15 +43,25 @@ export const extendedRoutes: RouteConfigEntry[] = [
           layout("../ext/pages/table/layout.tsx", [
             route(":workspaceSlug/projects/:projectId/mawesi-tabla", "../ext/pages/table/page.tsx"),
           ]),
+          layout("../ext/pages/capacity/layout.tsx", [
+            route(":workspaceSlug/projects/:projectId/mawesi-capacidad", "../ext/pages/capacity/page.tsx"),
+          ]),
+          layout("../ext/pages/flow/layout.tsx", [
+            route(":workspaceSlug/projects/:projectId/mawesi-flujo", "../ext/pages/flow/page.tsx"),
+          ]),
         ]),
       ]),
       layout(SETTINGS_CHAIN[0], [
+        layout(WORKSPACE_SETTINGS_LAYOUT, [
+          route(":workspaceSlug/settings/mawesi-repos", "../ext/pages/code-settings/page.tsx"),
+        ]),
         layout(SETTINGS_CHAIN[1], [
           layout(SETTINGS_CHAIN[2], [
             route(":workspaceSlug/settings/projects/:projectId/mawesi-campos", "../ext/pages/properties-settings/page.tsx"),
             route(":workspaceSlug/settings/projects/:projectId/mawesi-sla", "../ext/pages/sla-settings/page.tsx"),
             route(":workspaceSlug/settings/projects/:projectId/mawesi-plantillas", "../ext/pages/templates-settings/page.tsx"),
             route(":workspaceSlug/settings/projects/:projectId/mawesi-reglas", "../ext/pages/automations-settings/page.tsx"),
+            route(":workspaceSlug/settings/projects/:projectId/mawesi-tablero", "../ext/pages/board-settings/page.tsx"),
           ]),
         ]),
       ]),

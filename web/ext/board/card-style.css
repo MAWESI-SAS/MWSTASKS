@@ -1,0 +1,34 @@
+/*
+ * Copyright (c) 2026-present MAWESI S.A.S.
+ * SPDX-License-Identifier: AGPL-3.0-only
+ *
+ * Colores de tarjeta (board/card-style.tsx pone la marca). Franja de color a la izquierda + tinte suave encima del
+ * fondo que ya tiene la tarjeta (background-image, así no se pisa el color de Plane ni el modo oscuro).
+ * Tablero: `.group/kanban-block > a` es la tarjeta. Lista: `.group/list-block` es la fila.
+ */
+:root {
+  --mawesi-card-red: #e5484d;
+  --mawesi-card-orange: #f76b15;
+  --mawesi-card-yellow: #e2a336;
+  --mawesi-card-green: #30a46c;
+  --mawesi-card-blue: #0090ff;
+  --mawesi-card-purple: #8e4ec6;
+  --mawesi-card-gray: #8b8d98;
+}
+
+.group\/kanban-block > a:has([data-mawesi="card-style"]),
+.group\/list-block:has([data-mawesi="card-style"]) {
+  box-shadow: inset 4px 0 0 var(--mawesi-card);
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--mawesi-card) 12%, transparent),
+    color-mix(in srgb, var(--mawesi-card) 12%, transparent)
+  );
+}
+
+:is(.group\/kanban-block > a, .group\/list-block):has([data-mawesi="card-style"][data-color="red"]) { --mawesi-card: var(--mawesi-card-red); }
+:is(.group\/kanban-block > a, .group\/list-block):has([data-mawesi="card-style"][data-color="orange"]) { --mawesi-card: var(--mawesi-card-orange); }
+:is(.group\/kanban-block > a, .group\/list-block):has([data-mawesi="card-style"][data-color="yellow"]) { --mawesi-card: var(--mawesi-card-yellow); }
+:is(.group\/kanban-block > a, .group\/list-block):has([data-mawesi="card-style"][data-color="green"]) { --mawesi-card: var(--mawesi-card-green); }
+:is(.group\/kanban-block > a, .group\/list-block):has([data-mawesi="card-style"][data-color="blue"]) { --mawesi-card: var(--mawesi-card-blue); }
+:is(.group\/kanban-block > a, .group\/list-block):has([data-mawesi="card-style"][data-color="purple"]) { --mawesi-card: var(--mawesi-card-purple); }
+:is(.group\/kanban-block > a, .group\/list-block):has([data-mawesi="card-style"][data-color="gray"]) { --mawesi-card: var(--mawesi-card-gray); }

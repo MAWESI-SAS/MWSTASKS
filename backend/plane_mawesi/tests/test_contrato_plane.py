@@ -73,3 +73,28 @@ def test_almacenamiento_y_assets_para_logo_de_proyecto():
     assert a.asset_url == "/api/assets/v2/static/00000000-0000-0000-0000-000000000001/"
     campos = {f.name for f in FileAsset._meta.get_fields()}
     assert {"asset", "workspace", "project", "entity_type", "entity_identifier", "attributes", "size", "is_uploaded"} <= campos
+
+
+@pytest.mark.contract
+def test_ciclos_estados_y_responsables_para_capacidad_y_flujo():
+    """capacity.py y flow.py leen fechas de ciclos, grupos de estado y responsables directo del ORM."""
+    from plane.db.models import Cycle, CycleIssue, IssueAssignee, State
+    from plane.db.models.workspace import WorkspaceBaseModel
+    assert {"start_date", "end_date", "timezone", "archived_at"} <= {f.name for f in Cycle._meta.get_fields()}
+    assert {"cycle", "issue"} <= {f.name for f in CycleIssue._meta.get_fields()}
+    assert {"issue", "assignee"} <= {f.name for f in IssueAssignee._meta.get_fields()}
+    assert {"group", "sequence", "default"} <= {f.name for f in State._meta.get_fields()}
+    assert {"workspace", "project"} <= {f.name for f in WorkspaceBaseModel._meta.get_fields()}
+
+
+@pytest.mark.contract
+@pytest.mark.django_db
+def test_issue_save_marca_completed_at(workspace, create_user):
+    """code.py cierra tareas con issue.save(): Plane debe seguir poniendo completed_at al pasar a "completed"."""
+    from plane.db.models import Issue, Project, State
+    p = Project.objects.create(name="P", identifier="PCT", workspace=workspace, created_by=create_user)
+    done = State.objects.create(name="Done", group="completed", project=p, workspace=workspace)
+    i = Issue.objects.create(name="x", project=p, workspace=workspace)
+    i.state = done
+    i.save()
+    assert i.completed_at is not None

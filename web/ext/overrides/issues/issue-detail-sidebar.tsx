@@ -8,6 +8,8 @@
  */
 import type { ComponentProps } from "react";
 import { IssueDetailsSidebar as Upstream } from "@upstream/components/issues/issue-detail/sidebar";
+import { CodePanel } from "../../code/code-panel";
+import { EstimatePanel } from "../../estimates/estimate-panel";
 import { PropertiesPanel } from "../../properties/properties-panel";
 import { RecurrencePanel } from "../../recurrence/recurrence-panel";
 import { SlaPanel } from "../../sla/sla-panel";
@@ -24,7 +26,9 @@ export const IssueDetailsSidebar = (props: ComponentProps<typeof Upstream>) => (
       <RecurrencePanel workspaceSlug={props.workspaceSlug} projectId={props.projectId} issueId={props.issueId} disabled={!props.isEditable} />
       <TemplateSubtasksButton workspaceSlug={props.workspaceSlug} projectId={props.projectId} issueId={props.issueId} disabled={!props.isEditable} />
       <PropertiesPanel workspaceSlug={props.workspaceSlug} projectId={props.projectId} issueId={props.issueId} disabled={!props.isEditable} />
+      <EstimatePanel workspaceSlug={props.workspaceSlug} projectId={props.projectId} issueId={props.issueId} disabled={!props.isEditable} />
       <WorklogPanel workspaceSlug={props.workspaceSlug} projectId={props.projectId} issueId={props.issueId} disabled={!props.isEditable} />
+      <CodePanel workspaceSlug={props.workspaceSlug} projectId={props.projectId} issueId={props.issueId} />
     </div>
   </div>
 );

@@ -31,6 +31,7 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
 | `components/issues/issue-layouts/properties/all-properties` | `overrides/issues/all-properties.tsx`: chip de horas al final de las propiedades de la tarjeta (tablero y lista). El contenedor de Plane queda en `contents` para compartir el flex. Los totales se piden en lote por proyecto (`worklog/totals.ts`). Pasa a Plane `displayProperties` apagando las propiedades sin valor (prioridad, fechas, responsables, etiquetas, estimado, lista, ciclo) y la lista/ciclo de la ruta actual, como Linear; el estado se apaga solo cuando la vista está agrupada por estado (lee `group_by` de `useIssues(useIssueStoreType()).issuesFilter`) |
 | `components/issues/issue-layouts/kanban/default` | `overrides/kanban/kanban-default.tsx`: con `group_by=state` y sin subgrupos, las columnas vacías arrancan plegadas (franja de 44px de Plane). `collapsedGroups.group_by` pasa a significar "lo que la persona invirtió" (plegada = vacía XOR guardada), así el botón de plegar sigue andando en los dos sentidos |
 | `components/project/form` | `overrides/project/form.tsx`: bloque "Logo con imagen" (`projects/logo-upload.tsx`, solo admins) arriba del formulario de Plane, que se vuelve a montar (`key` = url de la imagen) porque guarda una copia de `logo_props` y la manda entera en "Update project" |
+| `components/issues/issue-layouts/kanban/headers/group-by-card` | `overrides/kanban/group-by-card.tsx`: con `group_by=state` y sin subgrupos, suma al encabezado de la columna el límite WIP (`conteo/límite`, rojo si se pasa; el conteo es el de Plane con los filtros actuales) y el ícono ⓘ con la definición de terminado (`board/use-board.ts`, un pedido por proyecto) |
 | `components/modules/analytics-sidebar/issue-progress` | `overrides/modules/issue-progress.tsx`: no dibuja "Progress" en el panel de una lista sin fechas (Plane mostraba "Invalid date. Please enter valid date.") |
 | `components/issues/issue-detail-widgets/relations/root` | `overrides/issues/relations-collapsible.tsx`: la sección "Relaciones" sale abierta al entrar a cada tarea (detalle y peek); Plane la arranca cerrada (`openWidgets` por defecto no incluye `relations`) y las relaciones migradas de ClickUp quedaban escondidas. Si se cierra, queda cerrada hasta abrir otra tarea. E2E `web/e2e/relations.py` |
 | `components/common/breadcrumb-link` | `overrides/common/breadcrumb-link.tsx`: no pinta la miga "Modules" (href `/projects/<id>/modules/`); las listas se ordenan solo desde el árbol. El resto de migas las pinta Plane |
@@ -74,7 +75,23 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
   plantilla". El disparo es el historial de Plane: su tarea `issue_activity` guarda con `bulk_create` (sin post_save),
   así que se leen sus filas en `task_postrun` (señales de Celery conectadas en `apps.py`); las filas creadas de a una
   llegan por `post_save`. Las acciones escriben su historial con `comment="mawesi-automation"`, que no dispara reglas.
-- `ext/nav.ts` agrega "Campos", "SLA", "Plantillas" y "Reglas" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
+- Funciones de Azure DevOps (ver README):
+  - Estimado (`estimates.py`, tabla `mawesi_issue_estimates`): panel en el peek y el detalle; el chip de horas de la
+    tarjeta pasa a "hecho / estimado". Historial con `field="estimate_hours"` (lo pinta `estimates/estimate-activity.tsx`).
+  - Tablero (`board.py`, tablas `mawesi_state_limits` y `mawesi_card_rules`): `…/settings/projects/:projectId/mawesi-tablero`.
+    Los colores de tarjeta NO editan Plane: `board/card-style.tsx` deja una marca oculta dentro de las propiedades (envoltorio
+    de `all-properties`) y `board/card-style.css` pinta con `:has()` la tarjeta (`.group/kanban-block > a`) o la fila
+    (`.group/list-block`). Si Plane cambia esas clases, los colores dejan de verse (lo cubre `web/e2e/board.py`).
+  - Capacidad (`capacity.py`, tablas `mawesi_cycle_capacities` y `mawesi_cycle_plans`) y Flujo (`flow.py`, sin tablas: lee
+    `IssueActivity(field="state")`): rutas `…/projects/:projectId/mawesi-capacidad` y `…/mawesi-flujo` en `PROJECT_LAYOUT`,
+    ítems "Capacidad" y "Flujo" en el menú del proyecto (mismo `additionalNavigationItems` que "Tabla").
+  - Repositorios (`code.py`, tablas `mawesi_code_repos` y `mawesi_code_links`): `:workspaceSlug/settings/mawesi-repos` cuelga
+    del layout de Configuración del workspace (`WORKSPACE_SETTINGS_LAYOUT` en `ext/routes.ts`). `registerWorkspaceSettings`
+    agrega el ítem a `GROUPED_WORKSPACE_SETTINGS[DEVELOPER]`, su ícono a `WORKSPACE_SETTINGS_ICONS` y la URL a
+    `WORKSPACE_SETTINGS_ACCESS` (el layout de Plane autoriza por URL: sin esa entrada muestra "no autorizado").
+    `sync_code_repos` corre cada 5 minutos (migración `0008`). Cierra tareas con `issue.save()` + su fila de historial
+    (`comment="mawesi-code"`), como las reglas.
+- `ext/nav.ts` agrega "Campos", "SLA", "Plantillas", "Reglas" y "Tablero" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
   `PROJECT_SETTINGS_ICONS` (objetos exportados de Plane, mutables).
 - `ext/nav.ts` agrega "Horas" a `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (arreglo exportado de Plane). Aparece
   en "More" (como Vistas/Análisis) y cada usuario puede fijarlo. El label no existe en el i18n de Plane: se muestra tal cual.
@@ -105,7 +122,9 @@ desestructurarlos. Usar las funciones flecha del store raíz (p. ej. `useIssueDe
 Cero archivos de Plane editados. Se activa con `DJANGO_SETTINGS_MODULE=plane_mawesi.settings` en la imagen.
 Internos de Plane que importamos (cubiertos por `tests/test_contrato_plane.py`): `plane.settings.production` / `.test`,
 `plane.urls.urlpatterns`, `plane.app.views.base.BaseAPIView`, `plane.api.views.base.BaseAPIView` (+ `APIKeyAuthentication`),
-`plane.app.permissions.ROLE`, `plane.db.models.project.ProjectBaseModel`, `Issue.issue_objects`, campos de `IssueActivity`.
+`plane.app.permissions.ROLE`, `plane.db.models.project.ProjectBaseModel`, `plane.db.models.workspace.WorkspaceBaseModel`,
+`Issue.issue_objects`, campos de `IssueActivity`, `Cycle`/`CycleIssue`/`IssueAssignee`/`State` y que `Issue.save()` ponga
+`completed_at`.
 Logo del proyecto (`views/project_logo.py`): `S3Storage().upload_file` (sin `request`: con MinIO apuntaría al host del navegador), `FileAsset` tipo `PROJECT_COVER` creado sin el flujo de subida de Plane (ese flujo lo pondría de portada) y servido por `/api/assets/v2/static/<id>/`; la imagen va en `Project.logo_props.image`.
 Empleados AI (`agents.py`, comando `mawesi_agents`): crean `User` normales (no `is_bot`: Plane filtra `member__is_bot=False` en responsables, búsqueda y reportes), `WorkspaceMember`/`ProjectMember` + `ProjectUserProperty` como `ProjectMemberListCreateAPIEndpoint`, `APIToken` (`label`, `user_type=0`) que usa `APIKeyAuthentication`, y el avatar como `FileAsset` `USER_AVATAR` sin workspace + `User.avatar_asset`. Contrato: `test_agents.py::test_el_token_actua_como_el_empleado`.
 

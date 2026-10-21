@@ -76,6 +76,24 @@ Tests: `docker build -t plane-backend-mawesi-test:dev -f backend/Dockerfile.test
 Tipos y valor: `text`/`url` (string), `number`, `date` (`AAAA-MM-DD`), `checkbox` (bool), `select` (id de opción),
 `multi_select` (lista de ids), `member` (id de usuario miembro del proyecto).
 
+## Funciones de Azure DevOps
+
+| Función | Dónde | Qué hace |
+|---|---|---|
+| Estimado y restante | Panel "Estimado" de la tarea + chip "hecho / estimado" en la tarjeta | Estimado y restante en horas; lo hecho son las horas registradas. Restante vacío = estimado − hecho |
+| Límite por columna (WIP) y definición de terminado | Configuración del proyecto → Tablero | La columna se pone roja si tiene más tareas que el límite; ⓘ muestra la definición de terminado |
+| Colores de tarjeta | Configuración del proyecto → Tablero | Reglas (vencida, vence en N días, prioridad, etiqueta, columna, sin responsable) → color. Gana la primera |
+| Capacidad | Menú del proyecto → Capacidad | Por ciclo: horas por día y días libres de cada persona contra el restante de sus tareas |
+| Flujo | Menú del proyecto → Flujo | Flujo acumulado, lead/cycle time, terminadas por semana y tareas en curso más viejas |
+| Enlace con el código | Configuración del workspace → Repositorios + panel "Código" de la tarea | Commits y PRs de GitHub/Azure Repos que nombran `TQ-123`; `fixes TQ-123` cierra la tarea al aprobar el PR |
+
+API pública del estimado (`X-Api-Key`, para los empleados AI): `GET/PUT /api/v1/mawesi/workspaces/<slug>/projects/<pid>/issues/<iid>/estimate/`
+con `{"original_minutes", "remaining_minutes"}` (null borra) y `GET …/projects/<pid>/estimates/?issue_ids=a,b`.
+
+Repositorios: MWSTASKS los LEE cada 5 minutos (Celery), no recibe webhooks (solo se ve por NetBird). Tokens solo por
+variables de entorno de api y worker: `MAWESI_GITHUB_TOKEN` (opcional: sin token solo repos públicos, 60 lecturas por hora) y
+`MAWESI_AZURE_DEVOPS_TOKEN` (obligatorio para Azure Repos, permiso Code: Read).
+
 ## Empleados AI
 
 Cada empleado AI de la plataforma de empleados MAWESI es un usuario de MWSTASKS: nombre, cargo, correo, avatar y su propio

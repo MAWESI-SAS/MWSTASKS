@@ -19,6 +19,8 @@ export const REPLACEMENTS: Record<string, string> = {
   "components/modules/analytics-sidebar/issue-progress": "overrides/modules/issue-progress.tsx",
   // Tablero: columnas vacías plegadas en franja vertical
   "components/issues/issue-layouts/kanban/default": "overrides/kanban/kanban-default.tsx",
+  // Tablero: límite de tareas (WIP) y definición de terminado en el encabezado de cada columna
+  "components/issues/issue-layouts/kanban/headers/group-by-card": "overrides/kanban/group-by-card.tsx",
   // Configuración > General: bloque "Logo con imagen" (el logo se dibuja con ext/projects/logo.tsx, ver vite.ext.config.ts)
   "components/project/form": "overrides/project/form.tsx",
   "components/common/breadcrumb-link": "overrides/common/breadcrumb-link.tsx",

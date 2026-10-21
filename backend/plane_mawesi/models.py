@@ -5,6 +5,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from plane.db.models.project import ProjectBaseModel
+from plane.db.models.workspace import WorkspaceBaseModel
 
 MAX_MINUTES_PER_ENTRY = 24 * 60
 
@@ -246,3 +247,136 @@ class Automation(ProjectBaseModel):
 
     def __str__(self):
         return self.name
+
+
+class IssueEstimate(ProjectBaseModel):
+    """Estimado y restante en horas de un work item (Original Estimate / Remaining Work de Azure DevOps). Lo hecho
+    (Completed Work) no se guarda: es la suma de sus Worklog. `remaining_minutes` vacío = estimado − hecho."""
+
+    issue = models.ForeignKey("db.Issue", on_delete=models.CASCADE, related_name="mawesi_estimates")
+    original_minutes = models.PositiveIntegerField(null=True, blank=True)
+    remaining_minutes = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = "mawesi_issue_estimates"
+        constraints = [
+            models.UniqueConstraint(fields=["issue"], condition=models.Q(deleted_at__isnull=True), name="mawesi_estimate_one_per_issue"),
+        ]
+
+    def __str__(self):
+        return f"{self.issue_id} · {self.original_minutes} / {self.remaining_minutes} min"
+
+
+class StateLimit(ProjectBaseModel):
+    """Límite de tareas (WIP) y definición de terminado de una columna del tablero (= estado del proyecto)."""
+
+    state = models.ForeignKey("db.State", on_delete=models.CASCADE, related_name="mawesi_limits")
+    wip_limit = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(999)])
+    definition_of_done = models.TextField(blank=True, default="")
+
+    class Meta:
+        db_table = "mawesi_state_limits"
+        constraints = [
+            models.UniqueConstraint(fields=["state"], condition=models.Q(deleted_at__isnull=True), name="mawesi_limit_one_per_state"),
+        ]
+
+
+class CardRule(ProjectBaseModel):
+    """Regla de color de la tarjeta (card styling de Azure DevOps). Se evalúa en el navegador con los datos que la
+    tarjeta ya tiene; gana la primera que coincide. `conditions` = {"priorities": [...], "label_ids": [...],
+    "state_ids": [...], "overdue": bool, "due_in_days": n, "unassigned": bool} (todas deben cumplirse)."""
+
+    name = models.CharField(max_length=80)
+    color = models.CharField(max_length=16)
+    conditions = models.JSONField(default=dict)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "mawesi_card_rules"
+        ordering = ("sort_order", "created_at")
+
+
+class CyclePlan(ProjectBaseModel):
+    """Días libres de todo el equipo en un ciclo (festivos propios, integración, etc.)."""
+
+    cycle = models.ForeignKey("db.Cycle", on_delete=models.CASCADE, related_name="mawesi_plans")
+    team_days_off = models.JSONField(default=list)  # ["2026-10-24", ...]
+
+    class Meta:
+        db_table = "mawesi_cycle_plans"
+        constraints = [
+            models.UniqueConstraint(fields=["cycle"], condition=models.Q(deleted_at__isnull=True), name="mawesi_plan_one_per_cycle"),
+        ]
+
+
+class CycleCapacity(ProjectBaseModel):
+    """Horas por día que una persona le dedica al ciclo y sus días libres (Capacity de Azure DevOps)."""
+
+    cycle = models.ForeignKey("db.Cycle", on_delete=models.CASCADE, related_name="mawesi_capacities")
+    member = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mawesi_capacities")
+    hours_per_day = models.DecimalField(max_digits=4, decimal_places=2, default=0)
+    days_off = models.JSONField(default=list)
+
+    class Meta:
+        db_table = "mawesi_cycle_capacities"
+        constraints = [
+            models.UniqueConstraint(fields=["cycle", "member"], condition=models.Q(deleted_at__isnull=True), name="mawesi_capacity_unique"),
+        ]
+
+
+class CodeProvider(models.TextChoices):
+    GITHUB = "github", "GitHub"
+    AZURE = "azure", "Azure Repos"
+
+
+class CodeRepo(WorkspaceBaseModel):
+    """Repositorio que MWSTASKS lee cada pocos minutos buscando ids de tareas (p. ej. TQ-123) en commits y PRs.
+    Se LEE desde acá (no hay webhooks): MWSTASKS solo se ve por NetBird y GitHub/Azure no llegarían.
+    Los tokens van por variables de entorno (MAWESI_GITHUB_TOKEN, MAWESI_AZURE_DEVOPS_TOKEN), nunca en la base."""
+
+    provider = models.CharField(max_length=10, choices=CodeProvider.choices)
+    # GitHub: owner/repo. Azure: organización/proyecto/repo.
+    path = models.CharField(max_length=300)
+    enabled = models.BooleanField(default=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.TextField(blank=True, default="")
+    links_found = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = "mawesi_code_repos"
+        ordering = ("path",)
+        constraints = [
+            models.UniqueConstraint(fields=["workspace", "provider", "path"], condition=models.Q(deleted_at__isnull=True), name="mawesi_repo_unique"),
+        ]
+
+    def __str__(self):
+        return f"{self.provider}:{self.path}"
+
+
+class CodeLinkKind(models.TextChoices):
+    COMMIT = "commit", "Commit"
+    PULL_REQUEST = "pr", "Pull request"
+
+
+class CodeLink(ProjectBaseModel):
+    """Commit o PR que nombra una tarea. `state` del PR: open, merged, closed (abandoned en Azure)."""
+
+    issue = models.ForeignKey("db.Issue", on_delete=models.CASCADE, related_name="mawesi_code_links")
+    repo = models.ForeignKey(CodeRepo, on_delete=models.CASCADE, related_name="links")
+    kind = models.CharField(max_length=10, choices=CodeLinkKind.choices)
+    external_id = models.CharField(max_length=80)  # sha o número del PR
+    url = models.URLField(max_length=500)
+    title = models.CharField(max_length=300)
+    author = models.CharField(max_length=120, blank=True, default="")
+    state = models.CharField(max_length=16, blank=True, default="")
+    branch = models.CharField(max_length=200, blank=True, default="")
+    happened_at = models.DateTimeField()
+    closed_issue = models.BooleanField(default=False)  # ya movió la tarea a terminado (una sola vez)
+
+    class Meta:
+        db_table = "mawesi_code_links"
+        ordering = ("-happened_at",)
+        constraints = [
+            models.UniqueConstraint(fields=["issue", "repo", "kind", "external_id"], condition=models.Q(deleted_at__isnull=True), name="mawesi_code_link_unique"),
+        ]

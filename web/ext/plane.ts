@@ -16,12 +16,15 @@ export {
   API_BASE_URL,
   EUserPermissions,
   GROUPED_PROJECT_SETTINGS,
+  GROUPED_WORKSPACE_SETTINGS,
   PROJECT_SETTINGS_CATEGORY,
   PROJECT_SETTINGS_FLAT_MAP,
+  WORKSPACE_SETTINGS_ACCESS,
+  WORKSPACE_SETTINGS_CATEGORY,
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
 } from "@plane/constants";
 export { EUserProjectRoles, EUserWorkspaceRoles } from "@plane/types";
-export type { TIssuePriorities, TLogoProps, TOAuthConfigs, TProjectSettingsItem } from "@plane/types";
+export type { TIssuePriorities, TLogoProps, TOAuthConfigs, TProjectSettingsItem, TWorkspaceSettingsItem } from "@plane/types";
 // Logo original de Plane (fuera de ext/ ese import llega a projects/logo.tsx: ver vite.ext.config.ts).
 export { Logo as PlaneLogo } from "@plane/propel/emoji-icon-picker";
 export { APIService } from "@/services/api.service";
@@ -31,6 +34,7 @@ export { useMember } from "@/hooks/store/use-member";
 export { useIssueDetail } from "@/hooks/store/use-issue-detail";
 export { useIssues } from "@/hooks/store/use-issues";
 export { useProjectState } from "@/hooks/store/use-project-state";
+export { useLabel } from "@/hooks/store/use-label";
 export { useIssueStoreType } from "@/hooks/use-issue-layout-store";
 export { ButtonAvatars } from "@/components/dropdowns/member/avatar";
 export { MemberDropdown } from "@/components/dropdowns/member/dropdown";
@@ -53,6 +57,7 @@ export { BreadcrumbLink } from "@upstream/components/common/breadcrumb-link";
 export { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 export { SettingsPageHeader } from "@/components/settings/page-header";
 export { PROJECT_SETTINGS_ICONS } from "@/components/settings/project/sidebar/item-icon";
+export { WORKSPACE_SETTINGS_ICONS } from "@/components/settings/workspace/sidebar/item-icon";
 export { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 export { Tooltip } from "@plane/propel/tooltip";
 import webPackageJson from "package.json";

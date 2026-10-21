@@ -7,6 +7,11 @@ from plane.urls import urlpatterns as plane_urlpatterns
 
 from plane_mawesi.auth import views as auth
 from plane_mawesi.views import automations as au
+from plane_mawesi.views import board as bd
+from plane_mawesi.views import capacity as cp
+from plane_mawesi.views import code as cd
+from plane_mawesi.views import estimates as es
+from plane_mawesi.views import flow as fl
 from plane_mawesi.views import properties as pr
 from plane_mawesi.views import project_logo as pl
 from plane_mawesi.views import recurrence as rc
@@ -65,6 +70,22 @@ urlpatterns = [
     # Reglas automáticas (solo web).
     path(f"api/mawesi/{PROJECT}/automations/", au.AutomationsEndpoint.as_view(), name="mawesi-automations"),
     path(f"api/mawesi/{PROJECT}/automations/<uuid:rule_id>/", au.AutomationDetailEndpoint.as_view(), name="mawesi-automation"),
+    # Estimado y restante en horas (web y API key: los empleados AI también estiman).
+    path(f"api/mawesi/{ISSUE}/estimate/", es.IssueEstimateEndpoint.as_view(), name="mawesi-estimate"),
+    path(f"api/mawesi/{PROJECT}/estimates/", es.EstimatesBatchEndpoint.as_view(), name="mawesi-estimates"),
+    path(f"api/v1/mawesi/{ISSUE}/estimate/", es.IssueEstimateKeyEndpoint.as_view(), name="mawesi-estimate-key"),
+    path(f"api/v1/mawesi/{PROJECT}/estimates/", es.EstimatesBatchKeyEndpoint.as_view(), name="mawesi-estimates-key"),
+    # Tablero: límites WIP, definición de terminado y colores de tarjeta (solo web).
+    path(f"api/mawesi/{PROJECT}/board/", bd.BoardConfigEndpoint.as_view(), name="mawesi-board"),
+    # Capacidad por ciclo y analítica de flujo (solo web).
+    path(f"api/mawesi/{PROJECT}/capacity/cycles/", cp.CycleListEndpoint.as_view(), name="mawesi-capacity-cycles"),
+    path(f"api/mawesi/{PROJECT}/cycles/<uuid:cycle_id>/capacity/", cp.CycleCapacityEndpoint.as_view(), name="mawesi-capacity"),
+    path(f"api/mawesi/{PROJECT}/flow/", fl.ProjectFlowEndpoint.as_view(), name="mawesi-flow"),
+    # Enlace con el código: repositorios del workspace y commits/PRs de cada tarea (solo web).
+    path("api/mawesi/workspaces/<str:slug>/code-repos/", cd.CodeReposEndpoint.as_view(), name="mawesi-code-repos"),
+    path("api/mawesi/workspaces/<str:slug>/code-repos/<uuid:repo_id>/", cd.CodeRepoDetailEndpoint.as_view(), name="mawesi-code-repo"),
+    path("api/mawesi/workspaces/<str:slug>/code-repos/<uuid:repo_id>/sync/", cd.CodeRepoSyncEndpoint.as_view(), name="mawesi-code-repo-sync"),
+    path(f"api/mawesi/{ISSUE}/code-links/", cd.IssueCodeLinksEndpoint.as_view(), name="mawesi-code-links"),
     # Logo del proyecto con imagen propia (solo web).
     path(f"api/mawesi/{PROJECT}/logo/", pl.ProjectLogoEndpoint.as_view(), name="mawesi-project-logo"),
     # Cronómetro: solo la web (lo usa una persona desde el navegador).
