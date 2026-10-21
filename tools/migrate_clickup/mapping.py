@@ -108,12 +108,17 @@ STANDARD_STATES = (
 )
 STATUS_TO_STATE = {
     "reported bugs": "Backlog", "reported bugs backlog": "Backlog",
-    "in qa to do": "In Review", "qa to do": "In Review", "in qa": "In Review", "in staging": "In Review",
+    "in qa to do": "In Review", "qa to do": "In Review", "in qa": "In Review", "in staging": "Done",
     "in review": "In Review", "blocked": "Blocked", "error": "In Progress",
 }
 GROUP_TO_STATE = {group: name for name, group, _, _ in STANDARD_STATES if name not in ("In Review", "Blocked")}
-BUG_STATUSES = ("reported bugs", "reported bugs backlog")  # además del estado, la tarea lleva la etiqueta "bug"
-BUG_TAG = {"name": "bug", "tag_bg": "#D33D44"}
+# Lo que el estado de ClickUp decía y el flujo estándar no tiene queda como etiqueta.
+# "In Staging" = terminado pero todavía no en producción: Done + "staging" (se saca a mano al pasar a producción).
+STATUS_TAGS = {
+    "reported bugs": {"name": "bug", "tag_bg": "#D33D44"},
+    "reported bugs backlog": {"name": "bug", "tag_bg": "#D33D44"},
+    "in staging": {"name": "staging", "tag_bg": "#0EA5E9"},
+}
 
 
 def standard_state(status_type: str, name: str) -> str:
@@ -121,8 +126,9 @@ def standard_state(status_type: str, name: str) -> str:
     return STATUS_TO_STATE.get(name.lower()) or GROUP_TO_STATE[state_group(status_type, name)]
 
 
-def is_bug_status(name: str) -> bool:
-    return name.lower() in BUG_STATUSES
+def status_tag(name: str):
+    """Etiqueta que agrega el estado de ClickUp (o None)."""
+    return STATUS_TAGS.get(name.lower())
 
 
 def is_sprint(list_name: str) -> bool:

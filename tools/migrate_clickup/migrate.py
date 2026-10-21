@@ -134,8 +134,8 @@ class Migration:
         for t in self.tasks.values():
             for tag in t.get("tags", []):
                 tags.setdefault(tag["name"].lower(), tag)
-            if M.is_bug_status(t["status"]["status"]):
-                tags.setdefault(M.BUG_TAG["name"], M.BUG_TAG)
+            if tag := M.status_tag(t["status"]["status"]):
+                tags.setdefault(tag["name"], tag)
         self.label_by_name = {}
         for key, tag in tags.items():
             ext = f"tag:{key}"
@@ -148,8 +148,8 @@ class Migration:
 
     def labels_of(self, t):
         names = [tag["name"].lower() for tag in t.get("tags", [])]
-        if M.is_bug_status(t["status"]["status"]):
-            names.append(M.BUG_TAG["name"])  # el flujo estándar no tiene estados de bugs: queda la etiqueta
+        if tag := M.status_tag(t["status"]["status"]):
+            names.append(tag["name"])  # lo que el flujo estándar no tiene como estado (bug, staging)
         return list(dict.fromkeys(self.label_by_name[n] for n in names))
 
     def cycles_and_modules(self):

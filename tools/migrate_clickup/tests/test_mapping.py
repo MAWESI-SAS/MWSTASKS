@@ -24,13 +24,14 @@ def test_flujo_estandar():
              ("custom", "Reported Bugs"): "Backlog", ("open", "to do"): "Todo", ("custom", "Ready"): "Todo",
              ("custom", "Sprint Queue"): "Todo", ("custom", "Commited For This Sprint"): "Todo",
              ("custom", "En Proceso"): "In Progress", ("custom", "error"): "In Progress",
-             ("custom", "In Qa To Do"): "In Review", ("custom", "In Staging"): "In Review",
+             ("custom", "In Qa To Do"): "In Review", ("custom", "In Staging"): "Done",
              ("done", "Blocked"): "Blocked", ("custom", "approved"): "Todo", ("done", "approved"): "Done",
              ("done", "Complete"): "Done", ("closed", "Closed"): "Done", ("closed", "Cancelled"): "Cancelled"}
     for (kind, name), want in cases.items():
         assert M.standard_state(kind, name) == want, (kind, name)
     assert {M.standard_state(k, n) for k, n in cases} == {s[0] for s in M.STANDARD_STATES}
-    assert M.is_bug_status("Reported Bugs") and not M.is_bug_status("In Qa")
+    assert M.status_tag("Reported Bugs")["name"] == "bug" and M.status_tag("In Staging")["name"] == "staging"
+    assert M.status_tag("In Qa") is None
 
 
 def test_fechas_en_hora_de_colombia():
