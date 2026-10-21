@@ -15,6 +15,8 @@ export const REPLACEMENTS: Record<string, string> = {
   "components/issues/issue-layouts/properties/all-properties": "overrides/issues/all-properties.tsx",
   // Relaciones (p. ej. "related" de ClickUp) abiertas por defecto en el detalle y el peek
   "components/issues/issue-detail-widgets/relations/root": "overrides/issues/relations-collapsible.tsx",
+  // Panel de una lista: sin "Invalid date" cuando la lista no tiene fechas (casi todas las migradas)
+  "components/modules/analytics-sidebar/issue-progress": "overrides/modules/issue-progress.tsx",
   "components/common/breadcrumb-link": "overrides/common/breadcrumb-link.tsx",
   "components/navigation/top-navigation-root": "overrides/navigation/top-navigation-root.tsx",
   // Cover del perfil con API en el mismo origen (Plane manda URL relativa a un URLField)

@@ -4,22 +4,49 @@
  *
  * Propiedades de la tarjeta (tablero y lista) de Plane + chips de horas y de SLA al final, en la misma fila.
  * El contenedor de Plane queda con `contents` para que sus chips y el nuestro compartan el mismo flex.
+ * Como Linear: solo se dibujan las propiedades con valor (Plane pinta un botón vacío por cada una) y, dentro de una
+ * lista o un ciclo, no se repite esa misma lista o ciclo en cada tarjeta. El estado se ve siempre.
  */
+import { observer } from "mobx-react";
 import { IssueProperties as Upstream } from "@upstream/components/issues/issue-layouts/properties/all-properties";
 import type { IIssueProperties } from "@upstream/components/issues/issue-layouts/properties/all-properties";
+import { useParams } from "react-router";
 import { SlaChip } from "../../sla/sla-chip";
 import { HoursChip } from "../../worklog/hours-chip";
 
 export * from "@upstream/components/issues/issue-layouts/properties/all-properties";
 
-export const IssueProperties = (props: IIssueProperties) => {
+type Props = IIssueProperties["displayProperties"];
+
+function filledProperties(
+  displayProperties: NonNullable<Props>,
+  issue: IIssueProperties["issue"],
+  route: { moduleId?: string; cycleId?: string }
+): NonNullable<Props> {
+  const noDates = !issue.start_date && !issue.target_date;
+  return {
+    ...displayProperties,
+    priority: !!displayProperties.priority && !!issue.priority && issue.priority !== "none",
+    start_date: !!displayProperties.start_date && !noDates,
+    due_date: !!displayProperties.due_date && !noDates,
+    assignee: !!displayProperties.assignee && !!issue.assignee_ids?.length,
+    labels: !!displayProperties.labels && !!issue.label_ids?.length,
+    estimate: !!displayProperties.estimate && !!issue.estimate_point,
+    modules: !!displayProperties.modules && !!issue.module_ids?.length && !route.moduleId,
+    cycle: !!displayProperties.cycle && !!issue.cycle_id && !route.cycleId,
+  };
+}
+
+export const IssueProperties = observer(function IssueProperties(props: IIssueProperties) {
+  const { moduleId, cycleId } = useParams();
   // Mismo corte que Plane: sin propiedades visibles no dibuja nada (y no debe quedar un div vacío).
   if (!props.displayProperties || !props.issue.project_id || props.isEpic) return <Upstream {...props} />;
+  const displayProperties = filledProperties(props.displayProperties, props.issue, { moduleId, cycleId });
   return (
     <div className={props.className}>
-      <Upstream {...props} className="contents" />
+      <Upstream {...props} displayProperties={displayProperties} className="contents" />
       <HoursChip projectId={props.issue.project_id} issueId={props.issue.id} />
       <SlaChip projectId={props.issue.project_id} issueId={props.issue.id} version={`${props.issue.state_id}|${props.issue.priority}`} />
     </div>
   );
-};
+});

@@ -2,7 +2,8 @@
  * Copyright (c) 2026-present MAWESI S.A.S.
  * SPDX-License-Identifier: AGPL-3.0-only
  *
- * Reemplazos de texto de marca que hace el plugin al compilar (sin editar archivos de Plane).
+ * Reemplazos de texto que hace el plugin al compilar (sin editar archivos de Plane): textos de marca y, al final, unos
+ * pocos ajustes de diseño que Plane deja fijos en el código (anchos, valores por defecto).
  * `file`: final de la ruta del módulo. Cada reemplazo debe encontrarse al menos una vez: si Plane cambia el texto,
  * el build FALLA (la actualización avisa). Solo textos visibles: no se tocan avisos de copyright ni licencias.
  */
@@ -48,6 +49,23 @@ export const TEXT_PATCHES: TextPatch[] = [
     rules: [['|| "Plane"', `|| "${PRODUCT_NAME}"`]],
   },
   { file: "apps/web/core/components/issues/peek-overview/properties.tsx", rules: [['? "Plane"', `? "${PRODUCT_NAME}"`]] },
+
+  // ---- Diseño ----
+  // Tablero: columnas de 350px (en 1440px entraban 3 de 7). 280px y las vacías de 200px (siguen recibiendo tarjetas).
+  {
+    file: "apps/web/core/components/issues/issue-layouts/kanban/default.tsx",
+    rules: [["groupByVisibilityToggle.showIssues ? `w-[350px]` : ``", "groupByVisibilityToggle.showIssues ? (issueLength ? `w-[280px]` : `w-[200px]`) : ``"]],
+  },
+  { file: "apps/web/core/components/issues/issue-layouts/kanban/swimlanes.tsx", rules: [["flex w-[350px] flex-shrink-0", "flex w-[280px] flex-shrink-0"]] },
+  // Panel de la lista cerrado por defecto (ocupaba un cuarto de la pantalla). Quien lo abre, lo encuentra abierto después.
+  {
+    file: "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(detail)/[moduleId]/page.tsx",
+    rules: [['useLocalStorage("module_sidebar_collapsed", "false")', 'useLocalStorage("module_sidebar_collapsed", "true")']],
+  },
+  {
+    file: "apps/web/app/(all)/[workspaceSlug]/(projects)/projects/(detail)/[projectId]/modules/(detail)/header.tsx",
+    rules: [['useLocalStorage("module_sidebar_collapsed", "false")', 'useLocalStorage("module_sidebar_collapsed", "true")']],
+  },
 ];
 
 /** Traducciones (todas las lenguas): "Plane" suelto → MWSTASKS. Se exige al menos un reemplazo en en y es. */
