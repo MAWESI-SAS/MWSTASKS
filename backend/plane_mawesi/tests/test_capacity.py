@@ -83,3 +83,14 @@ class TestCapacity:
         data = c.get(url(workspace, project, "capacity/cycles/")).json()
         assert [x["name"] for x in data["cycles"]] == ["Sprint 1"] and data["current_id"] == str(cycle.id)
         assert c.get(url(workspace, project, f"cycles/{sin.id}/capacity/")).status_code == 400
+
+
+@pytest.mark.django_db
+def test_fechas_en_la_zona_del_proyecto(project, create_user):
+    """Así guarda Plane un ciclo del 13 al 27 de octubre en un proyecto de Bogotá (cycle.timezone queda en UTC)."""
+    utc = dt.timezone.utc
+    project.timezone = "America/Bogota"
+    project.save()
+    c = Cycle.objects.create(name="Sprint 27", project=project, workspace=project.workspace, owned_by=create_user, timezone="UTC",
+                             start_date=dt.datetime(2026, 10, 13, 5, 0, 1, tzinfo=utc), end_date=dt.datetime(2026, 10, 28, 4, 59, tzinfo=utc))
+    assert C.cycle_dates(c) == (dt.date(2026, 10, 13), dt.date(2026, 10, 27))

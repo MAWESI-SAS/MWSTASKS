@@ -31,11 +31,12 @@ class InvalidCapacity(ValueError):
 
 
 def cycle_dates(cycle):
-    """(inicio, fin) como fechas en la zona del ciclo; None si le falta alguna."""
+    """(inicio, fin) como fechas en la zona del PROYECTO; None si le falta alguna. Plane guarda el fin como 23:59 en la
+    zona del proyecto (p. ej. 2026-10-28 04:59 UTC = 27 de octubre en Bogotá) y deja `cycle.timezone` en "UTC"."""
     if not cycle.start_date or not cycle.end_date:
         return None
     try:
-        zone = ZoneInfo(cycle.timezone or "UTC")
+        zone = ZoneInfo(getattr(cycle.project, "timezone", None) or cycle.timezone or "UTC")
     except Exception:  # noqa: BLE001 - zona rara guardada por Plane
         zone = ZoneInfo("UTC")
     return cycle.start_date.astimezone(zone).date(), cycle.end_date.astimezone(zone).date()

@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: AGPL-3.0-only
  *
  * Flujo del proyecto (widgets de analítica de Azure DevOps): flujo acumulado por estado, lead time y cycle time,
- * tareas terminadas por semana y las tareas en curso más viejas. Se puede acotar a una lista.
+ * tareas terminadas por semana y las tareas en curso más viejas. Se puede acotar a una lista. Las terminadas no se
+ * apilan por defecto (como "ocultar la columna Done" de Azure DevOps): con años de historia tapan las abiertas.
  */
 import { useMemo } from "react";
 import { observer } from "mobx-react";
@@ -43,6 +44,7 @@ const FlowPage = observer(function FlowPage() {
   const [params, setParams] = useSearchParams();
   const days = Number(params.get("dias")) || 30;
   const moduleId = params.get("lista") ?? "";
+  const withDone = params.get("terminadas") === "1";
   const moduleStore = useModule();
   const { getStateById } = useProjectState();
   useSWR(workspaceSlug && projectId ? ["mawesi-flow-modules", workspaceSlug, projectId] : null, () => moduleStore.fetchModules(workspaceSlug, projectId), {
@@ -67,7 +69,7 @@ const FlowPage = observer(function FlowPage() {
     () => (data ? data.days.map((d, i) => ({ day: d.slice(5), ...Object.fromEntries(data.states.map((s) => [s.id, data.cfd[s.id][i]])) })) : []),
     [data]
   );
-  const stacked = data ? [...data.states].reverse() : [];
+  const stacked = data ? [...data.states].reverse().filter((s) => withDone || s.group !== "completed") : [];
 
   return (
     <>
@@ -103,6 +105,10 @@ const FlowPage = observer(function FlowPage() {
                 </option>
               ))}
             </select>
+          </label>
+          <label className="flex h-9 items-center gap-2 text-13">
+            <input type="checkbox" name="with-done" checked={withDone} onChange={(e) => setParam("terminadas", e.target.checked ? "1" : "")} />
+            {t("flow.with_done")}
           </label>
           {data && (
             <span className="flex h-9 items-center text-13 text-secondary" data-mawesi="flow-wip">

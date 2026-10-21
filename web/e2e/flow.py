@@ -41,7 +41,13 @@ with sync_playwright() as p:
     pg.locator(f"a[href*='/projects/{pid}/mawesi-flujo']:visible").first.click()
     page = pg.locator("[data-mawesi=flow]")
     expect(page.locator("[data-mawesi=flow-cfd]")).to_be_visible(timeout=15000)
-    checks["cfd_dibujado"] = page.locator("[data-mawesi=flow-cfd] .recharts-area").count() >= 3
+    expect(page.locator("[data-mawesi=flow-cfd] .recharts-area")).to_have_count(
+        len([s for s in states if s["group"] not in ("completed", "cancelled")]), timeout=10000)  # terminadas fuera por defecto
+    checks["cfd_sin_terminadas"] = True
+    page.locator("input[name=with-done]").check()
+    expect(page.locator("[data-mawesi=flow-cfd] .recharts-area")).to_have_count(
+        len([s for s in states if s["group"] != "cancelled"]), timeout=10000)
+    checks["cfd_con_terminadas"] = "terminadas=1" in pg.url
     data = call("GET", f"/api/mawesi/workspaces/{WS}/projects/{pid}/flow/?days=30")["data"]
     checks["lead_time"] = data["lead_time"]["count"] >= 1 and page.locator("[data-mawesi=flow-lead]").is_visible()
     checks["cycle_time_con_historial"] = data["cycle_time"]["count"] >= 1

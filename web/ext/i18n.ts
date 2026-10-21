@@ -411,6 +411,7 @@ const ES = {
   "activity.estimate_set": "puso el estimado en",
   "activity.estimate_removed": "quitó el estimado",
   "capacity.days_left_col": "Días hábiles",
+  "flow.with_done": "Incluir terminadas en el flujo acumulado",
 } as const;
 
 type Key = keyof typeof ES;
@@ -820,6 +821,7 @@ const EN: Record<Key, string> = {
   "activity.estimate_set": "set the estimate to",
   "activity.estimate_removed": "removed the estimate",
   "capacity.days_left_col": "Working days",
+  "flow.with_done": "Include done items in cumulative flow",
 };
 
 export type TKey = Key;

@@ -65,3 +65,27 @@ class TestEstimateApi:
         r = api_key_client.put(f"/api/v1/mawesi/workspaces/{workspace.slug}/projects/{project.id}/issues/{issue.id}/estimate/",
                                {"original_minutes": 240}, format="json")
         assert r.status_code == 200 and r.json()["original_minutes"] == 240
+
+
+@pytest.mark.django_db
+def test_copia_el_campo_estimado_de_clickup(workspace, project, issue):
+    import io
+
+    from django.core.management import call_command
+
+    from plane.db.models import Issue
+    from plane_mawesi.models import Property, PropertyValue
+
+    prop = Property.objects.create(project=project, workspace=workspace, name="Estimado (h)", type="number")
+    otra = Issue.objects.create(name="Ya estimada", project=project, workspace=workspace)
+    cero = Issue.objects.create(name="Cero", project=project, workspace=workspace)
+    for i, v in ((issue, 1.5), (otra, 8), (cero, 0)):
+        PropertyValue.objects.create(project=project, workspace=workspace, issue=i, property=prop, value=v)
+    IssueEstimate.objects.create(issue=otra, project=project, workspace=workspace, original_minutes=60)
+    out = io.StringIO()
+    call_command("mawesi_import_estimates", "--workspace", workspace.slug, stdout=out)
+    assert "1 estimados copiados, 2 saltados" in out.getvalue()
+    assert IssueEstimate.objects.get(issue=issue).original_minutes == 90
+    assert IssueEstimate.objects.get(issue=otra).original_minutes == 60  # lo cargado en MWSTASKS no se pisa
+    call_command("mawesi_import_estimates", "--workspace", workspace.slug, stdout=io.StringIO())
+    assert IssueEstimate.objects.count() == 2

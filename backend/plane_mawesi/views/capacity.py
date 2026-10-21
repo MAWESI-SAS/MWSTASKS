@@ -22,7 +22,7 @@ class CycleListEndpoint(PlaneSessionAPIView):
             return FORBIDDEN
         today = _today()
         cycles, current = [], None
-        for c in Cycle.objects.filter(workspace__slug=slug, project_id=project_id, archived_at__isnull=True).order_by("-start_date"):
+        for c in Cycle.objects.filter(workspace__slug=slug, project_id=project_id, archived_at__isnull=True).select_related("project").order_by("-start_date"):
             dates = C.cycle_dates(c)
             if dates is None:
                 continue
@@ -36,7 +36,7 @@ class CycleCapacityEndpoint(PlaneSessionAPIView):
     """GET → reporte de capacidad; PUT → guarda horas por día y días libres (ver capacity.save)."""
 
     def _cycle(self, slug, project_id, cycle_id):
-        return Cycle.objects.filter(workspace__slug=slug, project_id=project_id, pk=cycle_id).first()
+        return Cycle.objects.filter(workspace__slug=slug, project_id=project_id, pk=cycle_id).select_related("project").first()
 
     def get(self, request, slug, project_id, cycle_id):
         if services.project_role(request.user, slug, project_id) not in READ_ROLES:

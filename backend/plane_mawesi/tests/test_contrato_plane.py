@@ -85,6 +85,8 @@ def test_ciclos_estados_y_responsables_para_capacidad_y_flujo():
     assert {"issue", "assignee"} <= {f.name for f in IssueAssignee._meta.get_fields()}
     assert {"group", "sequence", "default"} <= {f.name for f in State._meta.get_fields()}
     assert {"workspace", "project"} <= {f.name for f in WorkspaceBaseModel._meta.get_fields()}
+    from plane.db.models import Project
+    assert "timezone" in {f.name for f in Project._meta.get_fields()}  # capacity.cycle_dates
 
 
 @pytest.mark.contract

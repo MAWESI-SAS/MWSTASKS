@@ -89,6 +89,8 @@ Tipos y valor: `text`/`url` (string), `number`, `date` (`AAAA-MM-DD`), `checkbox
 
 API pública del estimado (`X-Api-Key`, para los empleados AI): `GET/PUT /api/v1/mawesi/workspaces/<slug>/projects/<pid>/issues/<iid>/estimate/`
 con `{"original_minutes", "remaining_minutes"}` (null borra) y `GET …/projects/<pid>/estimates/?issue_ids=a,b`.
+El campo propio "Estimado (h)" que vino de ClickUp se copia al estimado con
+`manage.py mawesi_import_estimates --workspace mawesi` (solo llena las tareas sin estimado; se puede repetir).
 
 Repositorios: MWSTASKS los LEE cada 5 minutos (Celery), no recibe webhooks (solo se ve por NetBird). Tokens solo por
 variables de entorno de api y worker: `MAWESI_GITHUB_TOKEN` (opcional: sin token solo repos públicos, 60 lecturas por hora) y
