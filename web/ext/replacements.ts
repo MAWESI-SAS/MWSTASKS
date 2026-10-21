@@ -17,6 +17,8 @@ export const REPLACEMENTS: Record<string, string> = {
   "components/issues/issue-detail-widgets/relations/root": "overrides/issues/relations-collapsible.tsx",
   // Panel de una lista: sin "Invalid date" cuando la lista no tiene fechas (casi todas las migradas)
   "components/modules/analytics-sidebar/issue-progress": "overrides/modules/issue-progress.tsx",
+  // Tablero: columnas vacías plegadas en franja vertical
+  "components/issues/issue-layouts/kanban/default": "overrides/kanban/kanban-default.tsx",
   "components/common/breadcrumb-link": "overrides/common/breadcrumb-link.tsx",
   "components/navigation/top-navigation-root": "overrides/navigation/top-navigation-root.tsx",
   // Cover del perfil con API en el mismo origen (Plane manda URL relativa a un URLField)

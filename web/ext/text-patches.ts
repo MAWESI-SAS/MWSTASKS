@@ -56,6 +56,11 @@ export const TEXT_PATCHES: TextPatch[] = [
     file: "apps/web/core/components/issues/issue-layouts/kanban/default.tsx",
     rules: [["groupByVisibilityToggle.showIssues ? `w-[350px]` : ``", "groupByVisibilityToggle.showIssues ? (issueLength ? `w-[280px]` : `w-[200px]`) : ``"]],
   },
+  // Tarjeta: título en hasta 2 líneas (con 1 se cortaba casi siempre, p. ej. "Bug - [Contractor Onboarding] -...").
+  {
+    file: "apps/web/core/components/issues/issue-layouts/kanban/block.tsx",
+    rules: [['"line-clamp-1 w-full text-body-sm-medium text-primary"', '"line-clamp-2 w-full text-body-sm-medium text-primary"']],
+  },
   { file: "apps/web/core/components/issues/issue-layouts/kanban/swimlanes.tsx", rules: [["flex w-[350px] flex-shrink-0", "flex w-[280px] flex-shrink-0"]] },
   // Panel de la lista cerrado por defecto (ocupaba un cuarto de la pantalla). Quien lo abre, lo encuentra abierto después.
   {
