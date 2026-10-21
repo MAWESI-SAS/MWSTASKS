@@ -44,14 +44,16 @@ with sync_playwright() as p:
     expect(page.locator("[data-mawesi=flow-cfd] .recharts-area")).to_have_count(
         len([s for s in states if s["group"] not in ("completed", "cancelled")]), timeout=10000)  # terminadas fuera por defecto
     checks["cfd_sin_terminadas"] = True
-    page.locator("input[name=with-done]").check()
+    page.locator("input[name=with-done]").click()  # controlado por la URL: el cambio llega después del clic
+    expect(page.locator("input[name=with-done]")).to_be_checked(timeout=10000)
     expect(page.locator("[data-mawesi=flow-cfd] .recharts-area")).to_have_count(
         len([s for s in states if s["group"] != "cancelled"]), timeout=10000)
     checks["cfd_con_terminadas"] = "terminadas=1" in pg.url
     data = call("GET", f"/api/mawesi/workspaces/{WS}/projects/{pid}/flow/?days=30")["data"]
     checks["lead_time"] = data["lead_time"]["count"] >= 1 and page.locator("[data-mawesi=flow-lead]").is_visible()
     checks["cycle_time_con_historial"] = data["cycle_time"]["count"] >= 1
-    checks["envejecimiento"] = page.locator("[data-mawesi=flow-aging-item]").filter(has_text="Flujo en curso E2E").count() == 1
+    # Envejecimiento: las 10 en curso más viejas (al repetir el E2E, la recién creada puede quedar fuera de las 10).
+    checks["envejecimiento"] = data["wip"] >= 1 and page.locator("[data-mawesi=flow-aging-item]").count() == min(10, data["wip"])
     checks["terminadas_por_semana"] = sum(w["done"] for w in data["throughput"]) >= 1 and page.locator("[data-mawesi=flow-throughput] .recharts-bar-rectangle").count() >= 1
     page.locator("select[name=days]").select_option("90")
     expect(page.locator("select[name=days]")).to_have_value("90")
