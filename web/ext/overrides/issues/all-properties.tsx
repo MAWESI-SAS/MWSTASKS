@@ -23,12 +23,12 @@ function filledProperties(
   issue: IIssueProperties["issue"],
   route: { moduleId?: string; cycleId?: string }
 ): NonNullable<Props> {
-  const noDates = !issue.start_date && !issue.target_date;
   return {
     ...displayProperties,
     priority: !!displayProperties.priority && !!issue.priority && issue.priority !== "none",
-    start_date: !!displayProperties.start_date && !noDates,
-    due_date: !!displayProperties.due_date && !noDates,
+    // Plane une las dos fechas en un rango solo cuando existen ambas: cada una se puede apagar por separado.
+    start_date: !!displayProperties.start_date && !!issue.start_date,
+    due_date: !!displayProperties.due_date && !!issue.target_date,
     assignee: !!displayProperties.assignee && !!issue.assignee_ids?.length,
     labels: !!displayProperties.labels && !!issue.label_ids?.length,
     estimate: !!displayProperties.estimate && !!issue.estimate_point,
