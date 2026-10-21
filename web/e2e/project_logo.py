@@ -43,6 +43,12 @@ with sync_playwright() as p:
     assert re.match(r"^/api/assets/v2/static/[0-9a-f-]{36}/$", src or ""), src
     ok = pg.evaluate("src => new Promise(r => { const i = new Image(); i.onload = () => r(i.naturalWidth); i.onerror = () => r(0); i.src = src; })", src)
     assert ok == 256, f"la imagen no carga o no es de 256px: {ok}"
+    # Un PNG de 64x32 tiene que llenar el ancho del cuadrado (antes quedaba chico en el medio).
+    fill = pg.evaluate("""src => new Promise(r => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => {
+        const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d"); x.drawImage(i, 0, 0);
+        const row = x.getImageData(0, 128, 256, 1).data; let n = 0; for (let k = 3; k < row.length; k += 4) if (row[k] > 0) n++; r(n); };
+        i.onerror = () => r(-1); i.src = src; })""", src)
+    assert fill >= 250, f"el logo no llena el cuadrado: {fill}px de 256 en la fila del medio"
     pg.screenshot(path=f"{OUT}/project-logo-settings.png")
 
     # 2. "Update project" del formulario de Plane no borra la imagen

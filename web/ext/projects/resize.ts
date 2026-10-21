@@ -30,7 +30,8 @@ export async function squareLogo(file: File): Promise<{ blob: Blob; name: string
   const img = await load(file);
   const w = img.naturalWidth || SIZE;
   const h = img.naturalHeight || SIZE;
-  const scale = Math.min(SIZE / w, SIZE / h, 1);
+  // Siempre llena el cuadrado (también agranda): un logo de 140px quedaba en la mitad y a 16px no se veía.
+  const scale = Math.min(SIZE / w, SIZE / h);
   const canvas = document.createElement("canvas");
   canvas.width = SIZE;
   canvas.height = SIZE;
