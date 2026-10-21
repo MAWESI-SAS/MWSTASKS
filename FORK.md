@@ -107,6 +107,7 @@ Internos de Plane que importamos (cubiertos por `tests/test_contrato_plane.py`):
 `plane.urls.urlpatterns`, `plane.app.views.base.BaseAPIView`, `plane.api.views.base.BaseAPIView` (+ `APIKeyAuthentication`),
 `plane.app.permissions.ROLE`, `plane.db.models.project.ProjectBaseModel`, `Issue.issue_objects`, campos de `IssueActivity`.
 Logo del proyecto (`views/project_logo.py`): `S3Storage().upload_file` (sin `request`: con MinIO apuntaría al host del navegador), `FileAsset` tipo `PROJECT_COVER` creado sin el flujo de subida de Plane (ese flujo lo pondría de portada) y servido por `/api/assets/v2/static/<id>/`; la imagen va en `Project.logo_props.image`.
+Empleados AI (`agents.py`, comando `mawesi_agents`): crean `User` normales (no `is_bot`: Plane filtra `member__is_bot=False` en responsables, búsqueda y reportes), `WorkspaceMember`/`ProjectMember` + `ProjectUserProperty` como `ProjectMemberListCreateAPIEndpoint`, `APIToken` (`label`, `user_type=0`) que usa `APIKeyAuthentication`, y el avatar como `FileAsset` `USER_AVATAR` sin workspace + `User.avatar_asset`. Contrato: `test_agents.py::test_el_token_actua_como_el_empleado`.
 
 Login con Microsoft (`plane_mawesi/auth/`): `MicrosoftOAuthProvider` hereda `plane.authentication.adapter.oauth.OauthAdapter`
 (mismo contrato que `GoogleOAuthProvider`) y las vistas copian el flujo de `GoogleOauthInitiateEndpoint`/`GoogleCallbackEndpoint`

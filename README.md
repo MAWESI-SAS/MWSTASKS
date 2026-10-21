@@ -75,3 +75,17 @@ Tests: `docker build -t plane-backend-mawesi-test:dev -f backend/Dockerfile.test
 
 Tipos y valor: `text`/`url` (string), `number`, `date` (`AAAA-MM-DD`), `checkbox` (bool), `select` (id de opción),
 `multi_select` (lista de ids), `member` (id de usuario miembro del proyecto).
+
+## Empleados AI
+
+Cada empleado AI de la plataforma de empleados MAWESI es un usuario de MWSTASKS: nombre, cargo, correo, avatar y su propio
+token. Así cada tarea, cambio y comentario queda a su nombre y se puede medir. No pueden entrar a la web (sin contraseña).
+
+```bash
+docker compose exec -T mwstasks-api python manage.py mawesi_agents --workspace mawesi < agentes.json > tokens.jsonl
+```
+
+`agentes.json`: `[{"email", "name", "title", "projects": ["*"] | ["TQ", ...], "avatar_b64", "active"}]`. Idempotente.
+Por stdout sale `{"email", "token"}` solo para tokens nuevos (Plane no los vuelve a mostrar); el resumen va a stderr.
+`--rotate` cambia todos los tokens. `"active": false` da de baja: lo hecho queda a su nombre y el token deja de servir.
+El comando no toca a una persona que ya exista con ese correo.
