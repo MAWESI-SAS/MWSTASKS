@@ -13,7 +13,7 @@ Copia un espacio de ClickUp a un proyecto de MWSTASKS.
 | Espacio (carpetas elegidas) | Proyecto |
 | Listas "Sprint …" | Ciclos (con las fechas de la lista) |
 | Otras listas | Módulos |
-| Estados | Estados (open→backlog, custom→started/unstarted, done→completed, cancelled→cancelled) |
+| Estados (distintos en cada lista) | Flujo estándar de 7 estados: Backlog, Todo, In Progress, In Review, Blocked, Done, Cancelled (`mapping.STANDARD_STATES`). Primero por nombre (`STATUS_TO_STATE`: QA y staging→In Review, Error→In Progress); si no, por tipo (open→Backlog/Todo, custom→In Progress/Todo, done/closed→Done, cancelled→Cancelled). "Reported Bugs…"→Backlog + etiqueta `bug` |
 | Tags | Etiquetas |
 | Prioridad | Prioridad (normal→medium) |
 | Subtareas | Work item padre |

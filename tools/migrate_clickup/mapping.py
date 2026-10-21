@@ -95,6 +95,36 @@ def state_group(status_type: str, name: str) -> str:
     return "unstarted" if any(h in n for h in UNSTARTED_HINTS) else "started"
 
 
+# Flujo estándar: cada lista de ClickUp tiene sus estados; en MWSTASKS todas usan estos 7 (nombre, grupo, color, orden).
+# Los 5 de Plane (Backlog, Todo, In Progress, Done, Cancelled) ya existen en cada proyecto y se reusan por nombre.
+STANDARD_STATES = (
+    ("Backlog", "backlog", "#60646C", 15000),
+    ("Todo", "unstarted", "#60646C", 25000),
+    ("In Progress", "started", "#F59E0B", 35000),
+    ("In Review", "started", "#8B5CF6", 38000),
+    ("Blocked", "started", "#D33D44", 41000),
+    ("Done", "completed", "#46A758", 45000),
+    ("Cancelled", "cancelled", "#9AA4BC", 55000),
+)
+STATUS_TO_STATE = {
+    "reported bugs": "Backlog", "reported bugs backlog": "Backlog",
+    "in qa to do": "In Review", "qa to do": "In Review", "in qa": "In Review", "in staging": "In Review",
+    "in review": "In Review", "blocked": "Blocked", "error": "In Progress",
+}
+GROUP_TO_STATE = {group: name for name, group, _, _ in STANDARD_STATES if name not in ("In Review", "Blocked")}
+BUG_STATUSES = ("reported bugs", "reported bugs backlog")  # además del estado, la tarea lleva la etiqueta "bug"
+BUG_TAG = {"name": "bug", "tag_bg": "#D33D44"}
+
+
+def standard_state(status_type: str, name: str) -> str:
+    """Estado de ClickUp -> nombre del estado estándar. Primero por nombre; si no, por el grupo que tendría."""
+    return STATUS_TO_STATE.get(name.lower()) or GROUP_TO_STATE[state_group(status_type, name)]
+
+
+def is_bug_status(name: str) -> bool:
+    return name.lower() in BUG_STATUSES
+
+
 def is_sprint(list_name: str) -> bool:
     return bool(SPRINT_RE.match(list_name.strip()))
 

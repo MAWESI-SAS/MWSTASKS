@@ -114,27 +114,19 @@ class Migration:
         return {x["external_id"]: x["id"] for x in self.pl.all(path) if x.get("external_source") == M.SOURCE and x.get("external_id")}
 
     def states(self):
-        existing = self._by_external(self.pl.proj(self.pid, "states/"))
-        self.state_by_name = {}
-        seen = {}
-        for lst in self.lists:
-            for s in lst["statuses"]:
-                seen.setdefault(s["status"].lower(), s)
-        for i, (key, s) in enumerate(sorted(seen.items(), key=lambda kv: kv[1].get("orderindex", 0))):
-            ext = f"status:{key}"
-            if ext not in existing:
-                body = {"name": s["status"].title()[:255], "color": s.get("color") or "#64748b",
-                        "group": M.state_group(s["type"], s["status"]), "sequence": (i + 1) * 1000,
-                        "external_source": M.SOURCE, "external_id": ext}
-                try:
-                    existing[ext] = self.pl.write("POST", self.pl.proj(self.pid, "states/"), body)["id"]
-                    self.stats["estados"] += 1
-                except PlaneError as e:
-                    if e.code != 409:
-                        raise
-                    # Mismo nombre que un estado de Plane ("Done", "Cancelled"…): se reusa ese.
-                    existing[ext] = e.json().get("id")
-            self.state_by_name[key] = existing[ext]
+        """Los 7 estados del flujo estándar (M.STANDARD_STATES); cada estado de ClickUp se traduce a uno de ellos."""
+        existing = {s["name"].lower(): s["id"] for s in self.pl.all(self.pl.proj(self.pid, "states/"))}
+        self.state_ids = {}
+        for name, group, color, sequence in M.STANDARD_STATES:
+            if name.lower() not in existing:
+                body = {"name": name, "color": color, "group": group, "sequence": sequence,
+                        "external_source": M.SOURCE, "external_id": f"std:{name.lower()}"}
+                existing[name.lower()] = self.pl.write("POST", self.pl.proj(self.pid, "states/"), body)["id"]
+                self.stats["estados"] += 1
+            self.state_ids[name] = existing[name.lower()]
+
+    def state_of(self, t):
+        return self.state_ids[M.standard_state(t["status"].get("type") or "custom", t["status"]["status"])]
 
     def labels(self):
         existing = self._by_external(self.pl.proj(self.pid, "labels/"))
@@ -142,6 +134,8 @@ class Migration:
         for t in self.tasks.values():
             for tag in t.get("tags", []):
                 tags.setdefault(tag["name"].lower(), tag)
+            if M.is_bug_status(t["status"]["status"]):
+                tags.setdefault(M.BUG_TAG["name"], M.BUG_TAG)
         self.label_by_name = {}
         for key, tag in tags.items():
             ext = f"tag:{key}"
@@ -151,6 +145,12 @@ class Migration:
                     "external_source": M.SOURCE, "external_id": ext})["id"]
                 self.stats["etiquetas"] += 1
             self.label_by_name[key] = existing[ext]
+
+    def labels_of(self, t):
+        names = [tag["name"].lower() for tag in t.get("tags", [])]
+        if M.is_bug_status(t["status"]["status"]):
+            names.append(M.BUG_TAG["name"])  # el flujo estándar no tiene estados de bugs: queda la etiqueta
+        return list(dict.fromkeys(self.label_by_name[n] for n in names))
 
     def cycles_and_modules(self):
         cycles = {c["external_id"]: c for c in self.pl.all(self.pl.proj(self.pid, "cycles/"))
@@ -249,10 +249,10 @@ class Migration:
         body = {
             "name": (t["name"] or "(sin título)")[:255],
             "description_html": M.description_html(t),
-            "state": self.state_by_name.get(t["status"]["status"].lower()),
+            "state": self.state_of(t),
             "priority": M.priority(t),
             "assignees": [a for a in assignees if a],
-            "labels": [self.label_by_name[tag["name"].lower()] for tag in t.get("tags", [])],
+            "labels": self.labels_of(t),
             "start_date": start, "target_date": due,
             "external_source": M.SOURCE, "external_id": t["id"],
             "created_at": M.ms_to_iso(t.get("date_created")),
