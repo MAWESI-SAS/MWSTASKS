@@ -8,6 +8,7 @@ from plane.urls import urlpatterns as plane_urlpatterns
 from plane_mawesi.auth import views as auth
 from plane_mawesi.views import automations as au
 from plane_mawesi.views import properties as pr
+from plane_mawesi.views import project_logo as pl
 from plane_mawesi.views import recurrence as rc
 from plane_mawesi.views import relations as rl
 from plane_mawesi.views import sla as sl
@@ -64,6 +65,8 @@ urlpatterns = [
     # Reglas automáticas (solo web).
     path(f"api/mawesi/{PROJECT}/automations/", au.AutomationsEndpoint.as_view(), name="mawesi-automations"),
     path(f"api/mawesi/{PROJECT}/automations/<uuid:rule_id>/", au.AutomationDetailEndpoint.as_view(), name="mawesi-automation"),
+    # Logo del proyecto con imagen propia (solo web).
+    path(f"api/mawesi/{PROJECT}/logo/", pl.ProjectLogoEndpoint.as_view(), name="mawesi-project-logo"),
     # Cronómetro: solo la web (lo usa una persona desde el navegador).
     path("api/mawesi/workspaces/<str:slug>/timer/", tm.CurrentTimerEndpoint.as_view(), name="mawesi-timer"),
     path("api/mawesi/workspaces/<str:slug>/timer/stop/", tm.StopTimerEndpoint.as_view(), name="mawesi-timer-stop"),

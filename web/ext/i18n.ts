@@ -291,6 +291,15 @@ const ES = {
   "auto.delete_body": "¿Seguro? Se borra la regla \"{name}\". Lo que ya hizo no cambia.",
   "auto.err_name": "Escribe el nombre de la regla.",
   "auto.err_action": "Elige al menos una acción.",
+  "projlogo.title": "Logo con imagen",
+  "projlogo.help": "PNG, JPG, WebP o SVG. Se achica a 256×256 y reemplaza al emoji o ícono. Si después eliges un emoji o ícono, la imagen se quita.",
+  "projlogo.upload": "Subir imagen",
+  "projlogo.change": "Cambiar imagen",
+  "projlogo.remove": "Quitar imagen",
+  "projlogo.saved": "Logo actualizado",
+  "projlogo.removed": "Imagen quitada: vuelve el emoji o ícono",
+  "projlogo.error": "No se pudo cambiar el logo",
+  "projlogo.not_image": "Ese archivo no es una imagen.",
 } as const;
 
 type Key = keyof typeof ES;
@@ -580,6 +589,15 @@ const EN: Record<Key, string> = {
   "auto.delete_body": "Are you sure? The rule \"{name}\" will be deleted. What it already did doesn't change.",
   "auto.err_name": "Type the rule name.",
   "auto.err_action": "Pick at least one action.",
+  "projlogo.title": "Image logo",
+  "projlogo.help": "PNG, JPG, WebP or SVG. It is resized to 256×256 and replaces the emoji or icon. Picking an emoji or icon later removes the image.",
+  "projlogo.upload": "Upload image",
+  "projlogo.change": "Change image",
+  "projlogo.remove": "Remove image",
+  "projlogo.saved": "Logo updated",
+  "projlogo.removed": "Image removed: the emoji or icon is back",
+  "projlogo.error": "Couldn't change the logo",
+  "projlogo.not_image": "That file is not an image.",
 };
 
 export type TKey = Key;

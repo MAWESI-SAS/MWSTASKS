@@ -28,6 +28,9 @@ const REPO = path.resolve(WEB, "../..");
 /** Módulos de íconos de Plane donde viven PlaneLogo/PlaneLockup: v1.4.x @plane/propel, preview @plane/blocks. */
 const ICON_SOURCES = ["@plane/propel/icons", "@plane/blocks/icons"];
 const ICONS_PREFIX = "\0mawesi:icons:";
+/** `Logo` de proyectos, vistas y páginas: se pisa para dibujar el logo con imagen propia (ext/projects/logo.tsx). */
+const LOGO_SOURCE = "@plane/propel/emoji-icon-picker";
+const LOGO_PREFIX = "\0mawesi:logo:";
 
 /** v1.4.x tiene apps/web/core/…; preview movió todo a apps/web/…: se comparan rutas sin ese "core/". */
 const canonical = (rel: string) => rel.replace(/^apps\/web\/core\//, "apps/web/");
@@ -68,6 +71,8 @@ function mawesiOverlay(): Plugin {
   const patched = new Set<string>(); // TEXT_PATCHES aplicados (por `file`)
   const localeHits = new Map<string, number>(); // reemplazos de marca por idioma
   const realIcons = new Map<string, string>(); // origen -> archivo real
+  let realLogo = ""; // archivo real de LOGO_SOURCE
+  let logoHit = false;
   return {
     name: "mawesi-overlay",
     enforce: "pre",
@@ -86,6 +91,14 @@ function mawesiOverlay(): Plugin {
         realIcons.set(source, r.id);
         return ICONS_PREFIX + source;
       }
+      // Logo: módulo virtual que reexporta todo y pisa solo `Logo`. ext/ (y el propio módulo) llegan al original.
+      if (source === LOGO_SOURCE && !importer?.startsWith(LOGO_PREFIX) && !importer?.startsWith(EXT + path.sep)) {
+        const r = await this.resolve(source, importer, { ...options, skipSelf: true });
+        if (!r) return null;
+        realLogo = r.id;
+        logoHit = true;
+        return LOGO_PREFIX + source;
+      }
       if (source.startsWith("@upstream/")) {
         const found = findUpstream(source.slice("@upstream/".length));
         if (found.length !== 1) this.error(`[mawesi] "${source}" no existe en Plane`);
@@ -103,6 +116,9 @@ function mawesiOverlay(): Plugin {
       return null;
     },
     load(id) {
+      if (id.startsWith(LOGO_PREFIX)) {
+        return `export * from ${JSON.stringify(realLogo)};\nexport { Logo } from ${JSON.stringify(path.join(EXT, "projects/logo.tsx"))};\n`;
+      }
       if (id.startsWith(ICONS_PREFIX)) {
         return iconsShim(realIcons.get(id.slice(ICONS_PREFIX.length))!, path.join(EXT, "brand/logos.tsx"));
       }
@@ -133,6 +149,7 @@ function mawesiOverlay(): Plugin {
     buildEnd(err) {
       // React Router compila cliente y servidor (modo SPA); solo el cliente monta los componentes.
       if (err || this.environment?.name !== "client") return;
+      if (!logoHit) this.error(`[mawesi] Plane ya no importa ${LOGO_SOURCE}: el logo con imagen dejaría de verse`);
       const unused = [...targets.keys()].filter((f) => !hits.has(f));
       if (unused.length) this.error(`[mawesi] Plane ya no importa: ${unused.map((f) => keyOf(f)).join(", ")}`);
       const notPatched = TEXT_PATCHES.filter((p) => !patched.has(p.file)).map((p) => p.file);

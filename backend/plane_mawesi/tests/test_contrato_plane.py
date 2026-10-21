@@ -59,3 +59,17 @@ def test_molde_oauth_para_microsoft():
                           "token_url", "userinfo_url"]
     assert {"get_user_token", "get_user_response", "create_update_account", "complete_login_or_signup"} <= set(dir(OauthAdapter))
     assert {"AUTHENTICATION_FAILED", "OAUTH_NOT_CONFIGURED", "INSTANCE_NOT_CONFIGURED"} <= set(AUTHENTICATION_ERROR_CODES)
+
+
+@pytest.mark.contract
+def test_almacenamiento_y_assets_para_logo_de_proyecto():
+    """views/project_logo.py: sube con S3Storage().upload_file y sirve por la URL estática de PROJECT_COVER."""
+    from plane.db.models import FileAsset
+    from plane.settings.storage import S3Storage
+    from plane.utils.exception_logger import log_exception  # noqa: F401
+    assert {"file_obj", "object_name", "content_type"} <= set(inspect.signature(S3Storage.upload_file).parameters)
+    assert "request" in inspect.signature(S3Storage.__init__).parameters
+    a = FileAsset(id="00000000-0000-0000-0000-000000000001", entity_type=FileAsset.EntityTypeContext.PROJECT_COVER)
+    assert a.asset_url == "/api/assets/v2/static/00000000-0000-0000-0000-000000000001/"
+    campos = {f.name for f in FileAsset._meta.get_fields()}
+    assert {"asset", "workspace", "project", "entity_type", "entity_identifier", "attributes", "size", "is_uploaded"} <= campos

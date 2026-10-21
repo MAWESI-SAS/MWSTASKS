@@ -21,7 +21,9 @@ export {
   WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS,
 } from "@plane/constants";
 export { EUserProjectRoles, EUserWorkspaceRoles } from "@plane/types";
-export type { TIssuePriorities, TOAuthConfigs, TProjectSettingsItem } from "@plane/types";
+export type { TIssuePriorities, TLogoProps, TOAuthConfigs, TProjectSettingsItem } from "@plane/types";
+// Logo original de Plane (fuera de ext/ ese import llega a projects/logo.tsx: ver vite.ext.config.ts).
+export { Logo as PlaneLogo } from "@plane/propel/emoji-icon-picker";
 export { APIService } from "@/services/api.service";
 export { useSearchParams } from "next/navigation";
 export { useUser, useUserPermissions } from "@/hooks/store/user";
