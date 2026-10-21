@@ -146,3 +146,12 @@ def test_solo_campos_usados():
     ]
     assert M.used_field_ids(tareas) == {"f1", "f4", "time_estimate"}
     assert M.used_field_ids([{"time_estimate": 0}]) == set()
+
+
+def test_dependencias_de_clickup():
+    # Así viene en la API: la misma dependencia en las dos tareas, con task_id = la que espera.
+    dep = {"task_id": "055", "depends_on": "053", "type": 1}
+    espera = {"id": "055", "dependencies": [dep, {"task_id": "092", "depends_on": "055", "type": 1}]}
+    bloquea = {"id": "053", "dependencies": [dep]}
+    rara = {"id": "x", "dependencies": [{"task_id": "x", "depends_on": "x"}, {"task_id": None, "depends_on": "y"}]}
+    assert M.dependency_pairs([espera, bloquea, rara]) == {("055", "053"), ("092", "055")}

@@ -67,6 +67,16 @@ def relation_pairs(tasks) -> set:
     return {(min(t["id"], o), max(t["id"], o)) for t in tasks for o in related_task_ids(t)}
 
 
+def dependency_pairs(tasks) -> set:
+    """Dependencias de ClickUp como pares (espera, bloqueante): `task_id` espera a `depends_on`. Cada dependencia viene
+    en las dos tareas; el set las junta."""
+    return {
+        (str(d["task_id"]), str(d["depends_on"]))
+        for t in tasks for d in t.get("dependencies") or []
+        if d.get("task_id") and d.get("depends_on") and str(d["task_id"]) != str(d["depends_on"])
+    }
+
+
 def ms_to_date(ms):
     """Milisegundos de ClickUp -> 'AAAA-MM-DD' en la hora de Colombia. None si viene vacío."""
     if ms in (None, ""):

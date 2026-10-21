@@ -5,6 +5,7 @@
  * Configuración del proyecto → Tablero (como Azure DevOps Boards; solo admins editan):
  * - Por columna: límite de tareas en curso (WIP) y definición de terminado.
  * - Colores de tarjeta: reglas en orden; gana la primera que coincide.
+ * - Dependencias: frenar, soltar de "Blocked" y correr fechas (backend plane_mawesi/dependencies.py).
  */
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
@@ -13,7 +14,7 @@ import { useParams } from "react-router";
 import useSWR, { mutate as globalMutate } from "swr";
 import { ArrowDown, ArrowUp, SquareKanban, Plus, Trash2 } from "lucide-react";
 import { CARD_COLORS, boardService } from "../../board/service";
-import type { TBoardConfig, TCardColor, TCardRule } from "../../board/service";
+import type { TBoardConfig, TCardColor, TCardRule, TDependencyPolicy } from "../../board/service";
 import { boardKey } from "../../board/use-board";
 import { useT } from "../../i18n";
 import type { TKey } from "../../i18n";
@@ -25,7 +26,8 @@ import {
 import { PRIORITIES } from "../../sla/service";
 import { Toggle } from "../../ui/toggle";
 
-const EMPTY: TBoardConfig = { limits: {}, card_rules: [] };
+const DEPENDENCIES: TDependencyPolicy = { enforce: true, auto_unblock: true, reschedule: true };
+const EMPTY: TBoardConfig = { limits: {}, card_rules: [], dependencies: DEPENDENCIES };
 const selectClass = "block h-8 rounded-md border border-subtle bg-surface-1 px-2 text-13 text-primary disabled:opacity-60";
 const newRule = (): TCardRule => ({ name: "", color: "red", conditions: { overdue: true }, enabled: true });
 
@@ -297,6 +299,27 @@ const BoardSettingsPage = observer(function BoardSettingsPage() {
               {t("board.add_rule")}
             </button>
           )}
+        </section>
+
+        <section className="space-y-3" data-mawesi="dependency-settings">
+          <div>
+            <h4 className="text-14 font-medium">{t("dep.settings")}</h4>
+            <p className="text-13 text-secondary">{t("dep.settings_help")}</p>
+          </div>
+          {(["enforce", "auto_unblock", "reschedule"] as const).map((k) => (
+            <div key={k} className="flex items-start gap-3">
+              <Toggle
+                value={(form.dependencies ?? DEPENDENCIES)[k]}
+                disabled={disabled}
+                label={t(`dep.${k}` as TKey)}
+                onChange={(v) => setForm((f) => ({ ...f, dependencies: { ...(f.dependencies ?? DEPENDENCIES), [k]: v } }))}
+              />
+              <div className="text-13" data-mawesi={`dep-${k}`}>
+                <div className="font-medium">{t(`dep.${k}` as TKey)}</div>
+                <div className="text-secondary">{t(`dep.${k}_help` as TKey)}</div>
+              </div>
+            </div>
+          ))}
         </section>
 
         {error && (

@@ -9,10 +9,13 @@ import "./theme/mawesi-theme.generated.css";
 import "./theme/shell.css";
 import "./folders/tree.css";
 import "./board/card-style.css";
+import { registerDependencies } from "./dependencies/register";
 import { registerNav, registerProjectSettings, registerWikiNav, registerWorkspaceSettings } from "./nav";
 
 registerNav();
 registerWikiNav();
 registerProjectSettings();
 registerWorkspaceSettings();
+// Fuera de React no hay idioma de Plane: el título sigue al navegador; el motivo viene del servidor.
+registerDependencies(() => (navigator.language.startsWith("es") ? "Tarea bloqueada" : "Work item blocked"));
 (globalThis as Record<string, unknown>).__MAWESI_EXT__ = "MAWESI-REGISTER-OK";

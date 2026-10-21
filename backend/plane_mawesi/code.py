@@ -31,6 +31,7 @@ from django.utils.dateparse import parse_datetime
 
 from plane.db.models import Issue, IssueActivity, Project, State
 
+from plane_mawesi import dependencies
 from plane_mawesi.models import CodeLink, CodeLinkKind, CodeProvider, CodeRepo
 
 SYNC_MINUTES = 5
@@ -227,7 +228,9 @@ def apply_events(repo: CodeRepo, events) -> int:
                 )
                 new += created
                 closed_group = issue.state.group in ("completed", "cancelled") if issue.state else False
-                if ref in ev.closes and ev.can_close and not link.closed_issue and not closed_group:
+                done_state = State.objects.filter(project_id=issue.project_id, group="completed").order_by("sequence").first()
+                blocked = done_state and dependencies.guard(issue, done_state.id, repo.created_by)
+                if ref in ev.closes and ev.can_close and not link.closed_issue and not closed_group and not blocked:
                     if _close(issue, repo.created_by):
                         CodeLink.objects.filter(pk=link.pk).update(closed_issue=True)
     return new

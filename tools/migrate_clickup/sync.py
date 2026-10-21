@@ -162,13 +162,14 @@ def prune(cu, pl, cfg, args):
     """Marca en MWSTASKS las tareas que ya no están en ClickUp. Lee todo: correr de noche."""
     report = collections.Counter()
     alive = collections.defaultdict(set)
-    pairs = set()
+    pairs, deps = set(), set()
     spaces = sorted({str(p["space"]) for p in cfg["projects"]})
     for t in cu.team_tasks(args.team, spaces):
         for p in cfg["projects"]:
             if M.in_scope(t, p["space"], set(p.get("folders", []))):
                 alive[p["identifier"]].add(t["id"])
                 pairs |= M.relation_pairs([t])
+                deps |= M.dependency_pairs([t])
     projects = {p["identifier"]: p["id"] for p in pl.all(pl.ws("projects/"))}
     for ident in sorted({p["identifier"] for p in cfg["projects"]}):
         pid = projects.get(ident)
@@ -182,10 +183,12 @@ def prune(cu, pl, cfg, args):
                 continue
             pl.write("PATCH", pl.proj(pid, f"issues/{i['id']}/"), {"labels": list(i.get("labels") or []) + [label]})
             report[f"{ident}: marcadas como borradas"] += 1
-    # Relaciones: ClickUp no siempre marca la tarea como cambiada al unirla con otra; de noche se revisan todas.
+    # Relaciones y dependencias: ClickUp no siempre marca la tarea como cambiada al unirla con otra; de noche se revisan todas.
     # Van al final: si fallan, las marcas de "Borrada en ClickUp" ya quedaron.
     for key, n in send_relations(pl, pairs).items():
         report[f"relaciones {key.replace('_', ' ')}"] += n
+    for key, n in send_relations(pl, deps, "blocked_by").items():
+        report[f"dependencias {key.replace('_', ' ')}"] += n
     return dict(report)
 
 

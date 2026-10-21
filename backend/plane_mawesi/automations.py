@@ -24,6 +24,7 @@ from plane.db.models import (
     Issue, IssueActivity, IssueAssignee, IssueLabel, Label, Module, ProjectMember, State,
 )
 
+from plane_mawesi import dependencies
 from plane_mawesi import recurrence as R
 from plane_mawesi import templates as T
 from plane_mawesi.models import Automation, AutomationTrigger, TaskTemplate
@@ -146,9 +147,11 @@ def on_activity(sender, instance, created, **kwargs):
 
 
 def dispatch(instance):
-    """Barato: solo encola si hay reglas activas que coinciden."""
+    """Barato: solo encola si hay reglas activas que coinciden. Cada fila pasa también por las dependencias
+    (dependencies.dispatch): mismo disparo, otra lógica."""
     if instance.issue_id is None:
         return
+    dependencies.dispatch(instance)
     event = event_of(instance)
     if event is None:
         return
@@ -179,7 +182,8 @@ def _apply(rule, issue):
     pid, wid = issue.project_id, issue.workspace_id
     if a.get("state_id") and str(issue.state_id) != a["state_id"]:
         new = State.objects.filter(pk=a["state_id"]).first()
-        if new:
+        # Una regla no puede saltarse una dependencia (las mismas reglas que la web y la API).
+        if new and not dependencies.guard(issue, new.id, rule.created_by):
             old = issue.state
             issue.state = new
             issue.save()  # Issue.save ajusta completed_at

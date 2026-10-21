@@ -13,6 +13,8 @@ export const REPLACEMENTS: Record<string, string> = {
   // Parecido a ClickUp: "Tabla" + árbol Carpeta > Lista en el menú, y horas en las tarjetas
   "components/workspace/sidebar/project-navigation": "overrides/workspace/project-navigation.tsx",
   "components/issues/issue-layouts/properties/all-properties": "overrides/issues/all-properties.tsx",
+  // Dependencias: tipos "empieza antes/después" y "termina antes/después" en el menú Relaciones
+  "components/relations": "overrides/relations/index.tsx",
   // Relaciones (p. ej. "related" de ClickUp) abiertas por defecto en el detalle y el peek
   "components/issues/issue-detail-widgets/relations/root": "overrides/issues/relations-collapsible.tsx",
   // Panel de una lista: sin "Invalid date" cuando la lista no tiene fechas (casi todas las migradas)

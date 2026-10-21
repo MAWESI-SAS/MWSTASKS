@@ -2,7 +2,7 @@
  * Copyright (c) 2026-present MAWESI S.A.S.
  * SPDX-License-Identifier: AGPL-3.0-only
  *
- * Propiedades de la tarjeta (tablero y lista) de Plane + chips de horas y de SLA al final, en la misma fila, y la
+ * Propiedades de la tarjeta (tablero y lista) de Plane + chips de horas, SLA y dependencias al final, en la misma fila, y la
  * marca de color de la tarjeta (board/card-style.tsx).
  * El contenedor de Plane queda con `contents` para que sus chips y el nuestro compartan el mismo flex.
  * Como Linear: solo se dibujan las propiedades con valor (Plane pinta un botón vacío por cada una) y, dentro de una
@@ -15,6 +15,7 @@ import type { IIssueProperties } from "@upstream/components/issues/issue-layouts
 import { useParams } from "react-router";
 import { useIssueStoreType, useIssues } from "../../plane";
 import { CardStyle } from "../../board/card-style";
+import { DependencyChip } from "../../dependencies/dependency-chip";
 import { SlaChip } from "../../sla/sla-chip";
 import { HoursChip } from "../../worklog/hours-chip";
 
@@ -54,6 +55,11 @@ export const IssueProperties = observer(function IssueProperties(props: IIssuePr
       <Upstream {...props} displayProperties={displayProperties} className="contents" />
       <HoursChip projectId={props.issue.project_id} issueId={props.issue.id} stateId={props.issue.state_id} />
       <SlaChip projectId={props.issue.project_id} issueId={props.issue.id} version={`${props.issue.state_id}|${props.issue.priority}`} />
+      <DependencyChip
+        projectId={props.issue.project_id}
+        issueId={props.issue.id}
+        version={`${props.issue.state_id}|${props.issue.start_date}|${props.issue.target_date}`}
+      />
       <CardStyle projectId={props.issue.project_id} issue={props.issue} />
     </div>
   );

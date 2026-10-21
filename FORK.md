@@ -32,6 +32,7 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
 | `components/issues/issue-layouts/kanban/default` | `overrides/kanban/kanban-default.tsx`: con `group_by=state` y sin subgrupos, las columnas vacías arrancan plegadas (franja de 44px de Plane). `collapsedGroups.group_by` pasa a significar "lo que la persona invirtió" (plegada = vacía XOR guardada), así el botón de plegar sigue andando en los dos sentidos |
 | `components/project/form` | `overrides/project/form.tsx`: bloque "Logo con imagen" (`projects/logo-upload.tsx`, solo admins) arriba del formulario de Plane, que se vuelve a montar (`key` = url de la imagen) porque guarda una copia de `logo_props` y la manda entera en "Update project" |
 | `components/issues/issue-layouts/kanban/headers/group-by-card` | `overrides/kanban/group-by-card.tsx`: con `group_by=state` y sin subgrupos, suma al encabezado de la columna el límite WIP (`conteo/límite`, rojo si se pasa; el conteo es el de Plane con los filtros actuales) y el ícono ⓘ con la definición de terminado (`board/use-board.ts`, un pedido por proyecto) |
+| `components/relations` | `overrides/relations/index.tsx`: suma "Empieza antes/después de" y "Termina antes/después de" (start_before/after, finish_before/after: el backend de Plane CE ya los guarda) a `ISSUE_RELATION_OPTIONS` y a `useTimeLineRelationOptions` (con textos propios). Sus inversos se agregan a `REVERSE_RELATIONS` (objeto exportado de `@plane/constants`) en `dependencies/register.ts` |
 | `components/modules/analytics-sidebar/issue-progress` | `overrides/modules/issue-progress.tsx`: no dibuja "Progress" en el panel de una lista sin fechas (Plane mostraba "Invalid date. Please enter valid date.") |
 | `components/issues/issue-detail-widgets/relations/root` | `overrides/issues/relations-collapsible.tsx`: la sección "Relaciones" sale abierta al entrar a cada tarea (detalle y peek); Plane la arranca cerrada (`openWidgets` por defecto no incluye `relations`) y las relaciones migradas de ClickUp quedaban escondidas. Si se cierra, queda cerrada hasta abrir otra tarea. E2E `web/e2e/relations.py` |
 | `components/common/breadcrumb-link` | `overrides/common/breadcrumb-link.tsx`: no pinta la miga "Modules" (href `/projects/<id>/modules/`); las listas se ordenan solo desde el árbol. El resto de migas las pinta Plane |
@@ -91,6 +92,14 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
     `WORKSPACE_SETTINGS_ACCESS` (el layout de Plane autoriza por URL: sin esa entrada muestra "no autorizado").
     `sync_code_repos` corre cada 5 minutos (migración `0008`). Cierra tareas con `issue.save()` + su fila de historial
     (`comment="mawesi-code"`), como las reglas.
+- Dependencias (`dependencies.py`, tabla `mawesi_dependency_policies`): `urls.GUARDED` repite 5 rutas de Plane (detalle de
+  tarea web y v1, `issue-relation` web y `relations` v1) con subclases de sus vistas que primero miran las dependencias
+  (409 `dependency_blocked` / 400 `dependency_cycle`) y después llaman a Plane con argumentos con nombre (sus decoradores de
+  permisos leen `slug` de kwargs). Lo cubre `test_contrato_plane.py::test_rutas_que_tapan_las_dependencias`. Lo automático
+  (soltar, correr fechas) se dispara con las mismas filas del historial que las reglas (`automations.dispatch` llama a
+  `dependencies.dispatch`) y se aplica con la tarea `issue_activity` de Plane (historial y avisos como un cambio a mano).
+  La web muestra el motivo de un 409/400 escuchando `XMLHttpRequest` (`dependencies/blocked-toast.ts`): Plane deshace su
+  cambio optimista pero su aviso es genérico.
 - `ext/nav.ts` agrega "Campos", "SLA", "Plantillas", "Reglas" y "Tablero" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y
   `PROJECT_SETTINGS_ICONS` (objetos exportados de Plane, mutables).
 - `ext/nav.ts` agrega "Horas" a `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (arreglo exportado de Plane). Aparece

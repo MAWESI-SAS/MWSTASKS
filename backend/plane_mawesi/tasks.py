@@ -24,3 +24,10 @@ def sync_code_repos():
     from plane_mawesi import code
 
     return code.sync_all()
+
+
+@shared_task
+def run_dependencies(job, issue_id, actor_id):
+    from plane_mawesi import dependencies
+
+    return {"unblock": dependencies.unblock, "reschedule": dependencies.reschedule}[job](issue_id, actor_id)

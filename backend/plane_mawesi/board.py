@@ -4,6 +4,7 @@
 
 - Por columna (estado): límite de tareas en curso (WIP) y definición de terminado.
 - Colores de tarjeta: reglas en orden; en el navegador gana la primera que coincide.
+- Dependencias: qué hacen (frenar, soltar de "Blocked", correr fechas). Ver dependencies.py.
 
 Se guarda todo junto (PUT reemplaza la configuración entera) porque la pantalla edita todo junto.
 """
@@ -11,7 +12,7 @@ from django.db import transaction
 
 from plane.db.models import Label, State
 
-from plane_mawesi.models import CardRule, StateLimit
+from plane_mawesi.models import CardRule, DependencyPolicy, StateLimit
 
 COLORS = ("red", "orange", "yellow", "green", "blue", "purple", "gray")
 PRIORITIES = ("urgent", "high", "medium", "low", "none")
@@ -33,7 +34,9 @@ def config(project_id) -> dict:
         {"id": str(r.id), "name": r.name, "color": r.color, "conditions": r.conditions, "enabled": r.enabled}
         for r in CardRule.objects.filter(project_id=project_id)
     ]
-    return {"limits": limits, "card_rules": rules}
+    dep = DependencyPolicy.objects.filter(project_id=project_id).first() or DependencyPolicy()
+    return {"limits": limits, "card_rules": rules,
+            "dependencies": {"enforce": dep.enforce, "auto_unblock": dep.auto_unblock, "reschedule": dep.reschedule}}
 
 
 def _ids(value, model, project_id, what):
@@ -124,4 +127,11 @@ def save(project, data, user) -> dict:
         CardRule.objects.bulk_create([
             CardRule(sort_order=i, created_by=user, updated_by=user, **r, **common) for i, r in enumerate(rules)
         ])
+        dep = data.get("dependencies")
+        if isinstance(dep, dict):
+            DependencyPolicy.objects.update_or_create(
+                project_id=project.id,
+                defaults={k: bool(dep.get(k, True)) for k in ("enforce", "auto_unblock", "reschedule")} | {
+                    "workspace_id": project.workspace_id, "updated_by": user},
+            )
     return config(project.id)

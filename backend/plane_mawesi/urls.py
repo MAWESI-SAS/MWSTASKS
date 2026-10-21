@@ -10,6 +10,7 @@ from plane_mawesi.views import automations as au
 from plane_mawesi.views import board as bd
 from plane_mawesi.views import capacity as cp
 from plane_mawesi.views import code as cd
+from plane_mawesi.views import dependencies as dp
 from plane_mawesi.views import estimates as es
 from plane_mawesi.views import flow as fl
 from plane_mawesi.views import properties as pr
@@ -48,7 +49,24 @@ def _property_routes(prefix: str, list_view, detail_view, values_view, batch_vie
     ]
 
 
+# Las vistas de Plane que cambian estados o crean relaciones, con el control de dependencias delante (mismas rutas y
+# mismos métodos que en plane/app/urls/issue.py y plane/api/urls/work_item.py; lo cubre test_contrato_plane.py).
+GUARDED = [
+    path(f"api/{PROJECT}/issues/<uuid:pk>/",
+         dp.GuardedIssueViewSet.as_view({"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"}),
+         name="project-issue"),
+    path(f"api/v1/{PROJECT}/issues/<uuid:pk>/",
+         dp.GuardedIssueDetailKeyEndpoint.as_view(http_method_names=["get", "patch", "delete"]), name="issue"),
+    path(f"api/v1/{PROJECT}/work-items/<uuid:pk>/",
+         dp.GuardedIssueDetailKeyEndpoint.as_view(http_method_names=["get", "patch", "delete"]), name="work-item-detail"),
+    path(f"api/{ISSUE}/issue-relation/",
+         dp.GuardedIssueRelationViewSet.as_view({"get": "list", "post": "create"}), name="issue-relation"),
+    path(f"api/v1/{PROJECT}/work-items/<uuid:issue_id>/relations/",
+         dp.GuardedIssueRelationKeyEndpoint.as_view(http_method_names=["get", "post"]), name="work-item-relation-list"),
+]
+
 urlpatterns = [
+    *GUARDED,
     path("api/mawesi/ping/", w.PingEndpoint.as_view(), name="mawesi-ping"),
     # Login con Microsoft (Plane CE no lo trae). Mismo prefijo /auth/ que los logins de Plane.
     path("auth/microsoft/", auth.MicrosoftInitiateEndpoint.as_view(), name="mawesi-microsoft-initiate"),
@@ -75,6 +93,8 @@ urlpatterns = [
     path(f"api/mawesi/{PROJECT}/estimates/", es.EstimatesBatchEndpoint.as_view(), name="mawesi-estimates"),
     path(f"api/v1/mawesi/{ISSUE}/estimate/", es.IssueEstimateKeyEndpoint.as_view(), name="mawesi-estimate-key"),
     path(f"api/v1/mawesi/{PROJECT}/estimates/", es.EstimatesBatchKeyEndpoint.as_view(), name="mawesi-estimates-key"),
+    # Dependencias: bloqueos y fechas que chocan, para las tarjetas (solo web).
+    path(f"api/mawesi/{PROJECT}/dependencies/", dp.DependencyStatusEndpoint.as_view(), name="mawesi-dependencies"),
     # Tablero: límites WIP, definición de terminado y colores de tarjeta (solo web).
     path(f"api/mawesi/{PROJECT}/board/", bd.BoardConfigEndpoint.as_view(), name="mawesi-board"),
     # Capacidad por ciclo y analítica de flujo (solo web).

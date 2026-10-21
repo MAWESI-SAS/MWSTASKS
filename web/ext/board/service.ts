@@ -18,7 +18,8 @@ export type TCardConditions = {
 
 export type TCardRule = { id?: string; name: string; color: TCardColor; conditions: TCardConditions; enabled: boolean };
 export type TStateLimit = { wip_limit: number | null; definition_of_done: string };
-export type TBoardConfig = { limits: Record<string, TStateLimit>; card_rules: TCardRule[] };
+export type TDependencyPolicy = { enforce: boolean; auto_unblock: boolean; reschedule: boolean };
+export type TBoardConfig = { limits: Record<string, TStateLimit>; card_rules: TCardRule[]; dependencies?: TDependencyPolicy };
 
 class BoardService extends APIService {
   constructor() {

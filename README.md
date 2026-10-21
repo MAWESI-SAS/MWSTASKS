@@ -96,6 +96,23 @@ Repositorios: MWSTASKS los LEE cada 5 minutos (Celery), no recibe webhooks (solo
 variables de entorno de api y worker: `MAWESI_GITHUB_TOKEN` (opcional: sin token solo repos públicos, 60 lecturas por hora) y
 `MAWESI_AZURE_DEVOPS_TOKEN` (obligatorio para Azure Repos, permiso Code: Read).
 
+## Dependencias
+
+Relaciones de la tarea: "Bloqueada por / Bloqueando" (terminar para empezar), "Empieza después de / antes de" y
+"Termina después de / antes de" (los dos últimos, que en Plane son pagos, se agregan al menú). Según Configuración del
+proyecto → Tablero → Dependencias (todo prendido por defecto):
+
+- **Frenar:** una tarea no pasa a "en curso" ni a "terminada" mientras lo que espera siga abierto (web y API; responde
+  409 con el motivo). No frena a las integraciones de un admin del workspace con API key (la copia desde ClickUp).
+- **Soltar al desbloquearse:** al resolverse lo último que esperaba, queda en el historial y, si estaba en "Blocked",
+  pasa a la primera columna por hacer (con el aviso de Plane).
+- **Correr fechas:** si una tarea se atrasa, sus dependientes se corren lo justo para no chocar (todas sus predecesoras
+  cuentan; nunca se adelantan). La cadena sigue sola.
+- No se pueden crear círculos. La tarjeta muestra "Bloqueada (n)" o "Fechas" si choca.
+
+Las dependencias de ClickUp (waiting on / blocking) se copian con la migración y el `--prune` nocturno de la copia
+incremental (`"relation_type": "blocked_by"` en `/api/v1/mawesi/workspaces/<slug>/relations/`).
+
 ## Empleados AI
 
 Cada empleado AI de la plataforma de empleados MAWESI es un usuario de MWSTASKS: nombre, cargo, correo, avatar y su propio

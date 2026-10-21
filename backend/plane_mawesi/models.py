@@ -380,3 +380,17 @@ class CodeLink(ProjectBaseModel):
         constraints = [
             models.UniqueConstraint(fields=["issue", "repo", "kind", "external_id"], condition=models.Q(deleted_at__isnull=True), name="mawesi_code_link_unique"),
         ]
+
+
+class DependencyPolicy(ProjectBaseModel):
+    """Cómo se comportan las dependencias del proyecto (ver plane_mawesi/dependencies.py). Sin fila = todo prendido."""
+
+    enforce = models.BooleanField(default=True)  # no dejar empezar ni terminar con bloqueos abiertos
+    auto_unblock = models.BooleanField(default=True)  # de "Blocked" a la columna de por hacer al soltarse
+    reschedule = models.BooleanField(default=True)  # correr las fechas de las dependientes si chocan
+
+    class Meta:
+        db_table = "mawesi_dependency_policies"
+        constraints = [
+            models.UniqueConstraint(fields=["project"], condition=models.Q(deleted_at__isnull=True), name="mawesi_dep_policy_one_per_project"),
+        ]

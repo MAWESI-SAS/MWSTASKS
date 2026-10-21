@@ -100,3 +100,31 @@ def test_issue_save_marca_completed_at(workspace, create_user):
     i.state = done
     i.save()
     assert i.completed_at is not None
+
+
+@pytest.mark.contract
+def test_rutas_que_tapan_las_dependencias():
+    """urls.GUARDED repite estas rutas de Plane con el control de dependencias delante. Si Plane las mueve o cambia
+    sus métodos, el control dejaría de aplicarse sin avisar."""
+    from django.urls import resolve
+
+    from plane.api.views import IssueDetailAPIEndpoint, IssueRelationListCreateAPIEndpoint
+    from plane.app.views import IssueRelationViewSet, IssueViewSet
+    from plane.urls import urlpatterns  # noqa: F401  (Plane sigue exponiendo sus rutas)
+
+    from plane_mawesi.views import dependencies as dp
+
+    ids = "00000000-0000-0000-0000-000000000001"
+    base = f"workspaces/ws/projects/{ids}"
+    expected = {
+        f"/api/{base}/issues/{ids}/": dp.GuardedIssueViewSet,
+        f"/api/v1/{base}/issues/{ids}/": dp.GuardedIssueDetailKeyEndpoint,
+        f"/api/v1/{base}/work-items/{ids}/": dp.GuardedIssueDetailKeyEndpoint,
+        f"/api/{base}/issues/{ids}/issue-relation/": dp.GuardedIssueRelationViewSet,
+        f"/api/v1/{base}/work-items/{ids}/relations/": dp.GuardedIssueRelationKeyEndpoint,
+    }
+    for path, view in expected.items():
+        assert resolve(path).func.cls is view, path
+    assert {"partial_update", "update", "retrieve", "destroy"} <= set(dir(IssueViewSet))
+    assert "patch" in dir(IssueDetailAPIEndpoint) and "post" in dir(IssueRelationListCreateAPIEndpoint)
+    assert "create" in dir(IssueRelationViewSet)
