@@ -128,8 +128,12 @@ def blockers(issue, target_group: str):
     return out
 
 
+def _short(text, size=60):
+    return text if len(text) <= size else text[: size - 1].rstrip() + "…"
+
+
 def message(found) -> str:
-    keys = ", ".join(f"{b['key']} ({b['name'][:60]})" for b in found[:5])
+    keys = ", ".join(f"{b['key']} ({_short(b['name'])})" for b in found[:5])
     more = f" y {len(found) - 5} más" if len(found) > 5 else ""
     return f"Esta tarea está bloqueada: espera a {keys}{more}."
 

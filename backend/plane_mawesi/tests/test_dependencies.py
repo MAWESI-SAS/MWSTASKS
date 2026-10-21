@@ -179,3 +179,9 @@ class TestApi:
         assert r["convertidas"] == 1 and r["creadas"] == 0
         rel = IssueRelation.objects.get()
         assert (rel.issue_id, rel.related_issue_id, rel.relation_type) == (b.id, a.id, "blocked_by")  # 055 espera a 053
+
+
+def test_mensaje_corta_nombres_largos():
+    largo = {"key": "CM-1", "name": "[US-56-BE-2] Proyección y veredicto de la revisión técnico-mecánica (RTM)", "kind": D.FS, "state": "Todo"}
+    msg = D.message([largo])
+    assert msg.startswith("Esta tarea está bloqueada: espera a CM-1 ([US-56-BE-2] Proyección") and "…)." in msg
