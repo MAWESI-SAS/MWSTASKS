@@ -187,8 +187,9 @@ class Migration:
                 self.module_by_list[lst["id"]] = modules[ext]["id"]
 
     def properties(self):
-        existing = {p["external_id"]: p for p in self.pl.get(self.pl.mawesi(self.pid, "properties/"))
-                    if p.get("external_source") == M.SOURCE}
+        props = self.pl.get(self.pl.mawesi(self.pid, "properties/"), include_removed=1)
+        removed = M.removed_fields(props)
+        existing = {p["external_id"]: p for p in props if p.get("external_source") == M.SOURCE and not p.get("removed")}
         self.prop_by_field, self.option_ids = {}, {}
         fields = sorted(self.fields.values(), key=lambda f: f["name"].lower())
         if self.a.estimate:
@@ -197,6 +198,9 @@ class Migration:
         for i, f in enumerate(fields):
             kind = M.FIELD_TYPES.get(f["type"], "text")
             prop = existing.get(f["id"])
+            if prop is None and f["id"] in removed:
+                self.stats["campos borrados en MWSTASKS (no se recrean)"] += 1
+                continue
             if prop is None and f["id"] not in used:
                 self.stats["campos sin uso (no se crean)"] += 1
                 continue

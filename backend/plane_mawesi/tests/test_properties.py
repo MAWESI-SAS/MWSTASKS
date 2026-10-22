@@ -67,6 +67,18 @@ class TestDefinicion:
         assert session_client.get(purl(workspace, project)).data == []
         assert Property.all_objects.filter(pk=p["id"]).exists()
 
+    def test_borrados_para_la_copia_de_clickup(self, make_prop, session_client, api_key_client, member_factory, workspace, project):
+        p = make_prop("Final Real", "date")
+        Property.objects.filter(pk=p["id"]).update(external_source="clickup", external_id="cf-1")
+        make_prop("Sin origen", "text")
+        assert session_client.delete(purl(workspace, project, p["id"])).status_code == 204
+        r = api_key_client.get(purl(workspace, project, prefix="api/v1/mawesi") + "?include_removed=1")
+        gone = [x for x in r.data if x.get("removed")]
+        assert [(x["external_source"], x["external_id"]) for x in gone] == [("clickup", "cf-1")]
+        assert [x["name"] for x in session_client.get(purl(workspace, project)).data] == ["Sin origen"]
+        _, member = member_factory("ana@example.com", MEMBER)
+        assert not any(x.get("removed") for x in member.get(purl(workspace, project) + "?include_removed=1").data)
+
 
 @pytest.mark.django_db
 class TestValores:

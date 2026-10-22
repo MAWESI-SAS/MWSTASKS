@@ -51,6 +51,12 @@ def related_task_ids(task) -> set:
     return out
 
 
+def removed_fields(props) -> set:
+    """Ids de ClickUp de los campos que alguien borró o desactivó en MWSTASKS: la copia no los vuelve a crear ni
+    les carga valores."""
+    return {p["external_id"] for p in props if p.get("removed") and p.get("external_source") == SOURCE}
+
+
 def used_field_ids(tasks) -> set:
     """Campos de ClickUp con algún valor en estas tareas ("time_estimate" si alguna tiene estimado).
     Solo esos se crean en MWSTASKS: un campo sin uso no se crea (ni se vuelve a crear si alguien lo borró)."""

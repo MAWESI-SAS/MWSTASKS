@@ -155,3 +155,10 @@ def test_dependencias_de_clickup():
     bloquea = {"id": "053", "dependencies": [dep]}
     rara = {"id": "x", "dependencies": [{"task_id": "x", "depends_on": "x"}, {"task_id": None, "depends_on": "y"}]}
     assert M.dependency_pairs([espera, bloquea, rara]) == {("055", "053"), ("092", "055")}
+
+
+def test_campos_borrados_en_mwstasks():
+    props = [{"external_source": "clickup", "external_id": "a"},
+             {"external_source": "clickup", "external_id": "b", "removed": True},
+             {"external_source": "", "external_id": "", "removed": True}]
+    assert M.removed_fields(props) == {"b"}

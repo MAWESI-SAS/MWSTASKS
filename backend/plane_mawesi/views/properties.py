@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Endpoints de campos propios (definición por proyecto y valores por work item)."""
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -27,9 +28,17 @@ class PropertiesMixin:
     """GET lista (admin y miembro) / POST crea (admin) los campos del proyecto."""
 
     def get(self, request, slug, project_id):
-        if services.project_role(request.user, slug, project_id) not in READ_ROLES:
+        role = services.project_role(request.user, slug, project_id)
+        if role not in READ_ROLES:
             return FORBIDDEN
-        return Response(PropertySerializer(_props(slug, project_id), many=True).data, status=status.HTTP_200_OK)
+        data = PropertySerializer(_props(slug, project_id), many=True).data
+        if request.GET.get("include_removed") == "1" and role == ROLE.ADMIN.value:
+            # Para la copia desde ClickUp: los campos que alguien borró o desactivó acá no se vuelven a crear.
+            gone = Property.all_objects.filter(workspace__slug=slug, project_id=project_id).exclude(external_id="").filter(
+                Q(deleted_at__isnull=False) | Q(is_active=False))
+            data = list(data) + [{"id": str(p.id), "name": p.name, "external_source": p.external_source,
+                                  "external_id": p.external_id, "removed": True} for p in gone]
+        return Response(data, status=status.HTTP_200_OK)
 
     def post(self, request, slug, project_id):
         if services.project_role(request.user, slug, project_id) != ROLE.ADMIN.value:
