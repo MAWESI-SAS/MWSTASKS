@@ -2,7 +2,7 @@
 su lista y muestra solo esos campos, cambiar el tipo a mano (historial), volver a automático, columnas de la Tabla por
 lista y borrar un tipo.
 
-Uso: RUN=<id> CHROME=<ruta-opcional> python3 web/e2e/types.py <carpeta-capturas>
+Uso: RUN=<id> CHROME=<ruta-opcional> python3 web/e2e/work_item_types.py <carpeta-capturas>
 Necesita el workspace de smoke.py con el mismo RUN (mawesi-qa-<RUN>, proyecto CQA).
 """
 import os, sys, time
