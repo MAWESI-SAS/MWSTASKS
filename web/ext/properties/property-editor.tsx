@@ -7,10 +7,11 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { ChevronDown, ExternalLink } from "lucide-react";
+import { ChevronDown, Pencil } from "lucide-react";
 import { useT } from "../i18n";
 import { useMember } from "../plane";
 import { Toggle } from "../ui/toggle";
+import { LinkChip } from "./link-chip";
 import type { TProperty, TValue } from "./service";
 
 type Props = { prop: TProperty; value: TValue; projectId: string; disabled?: boolean; onSave: (v: TValue) => void };
@@ -21,32 +22,64 @@ export const GHOST =
   "placeholder:text-placeholder hover:bg-layer-transparent-hover focus:bg-layer-transparent-hover disabled:cursor-not-allowed";
 
 /** Texto, URL, número y fecha: se guarda al salir del campo o con Enter. */
-function TextLike({ prop, value, disabled, onSave }: Props) {
+function TextLike({ prop, value, disabled, onSave, autoFocus, onDone }: Props & { autoFocus?: boolean; onDone?: () => void }) {
   const t = useT();
   const [draft, setDraft] = useState(value == null ? "" : String(value));
+  const cancelled = useRef(false);
   useEffect(() => setDraft(value == null ? "" : String(value)), [value]);
   const commit = () => {
+    if (cancelled.current) {
+      cancelled.current = false;
+      onDone?.();
+      return;
+    }
     const next = draft.trim() === "" ? null : draft.trim();
     if (String(next ?? "") !== String(value ?? "")) onSave(next);
+    onDone?.();
   };
   const type = prop.type === "number" ? "number" : prop.type === "date" ? "date" : prop.type === "url" ? "url" : "text";
   return (
-    <div className="group flex w-full items-center">
-      <input
-        type={type}
-        value={draft}
-        disabled={disabled}
-        placeholder={t("fields.empty_value")}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        className={`${GHOST} ${type === "date" && !draft ? "text-placeholder" : ""}`}
-        data-mawesi-input={prop.type}
-      />
-      {prop.type === "url" && typeof value === "string" && (
-        <a href={value} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-sm p-1 text-tertiary hover:text-primary" aria-label="Abrir">
-          <ExternalLink className="size-3.5" />
-        </a>
+    <input
+      type={type}
+      value={draft}
+      disabled={disabled}
+      autoFocus={autoFocus}
+      placeholder={t("fields.empty_value")}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") {
+          cancelled.current = true;
+          e.currentTarget.blur(); // commit ve la marca, no guarda y la limpia
+          setDraft(value == null ? "" : String(value));
+        }
+      }}
+      className={`${GHOST} ${type === "date" && !draft ? "text-placeholder" : ""}`}
+      data-mawesi-input={prop.type}
+    />
+  );
+}
+
+/** Link: se ve como ClickUp (ícono del sitio + nombre, abre en otra pestaña); el lápiz lo edita. */
+function UrlField(props: Props) {
+  const t = useT();
+  const [editing, setEditing] = useState(false);
+  const { value, disabled } = props;
+  if (editing || typeof value !== "string" || !value) return <TextLike {...props} autoFocus={editing} onDone={() => setEditing(false)} />;
+  return (
+    <div className="group flex h-7.5 w-full min-w-0 items-center gap-1 rounded-sm px-2 hover:bg-layer-transparent-hover">
+      <LinkChip url={value} />
+      {!disabled && (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="ml-auto hidden shrink-0 rounded-sm p-0.5 text-tertiary group-hover:inline-flex hover:text-primary"
+          aria-label={t("fields.edit_link")}
+          data-mawesi-input="url-edit"
+        >
+          <Pencil className="size-3.5" />
+        </button>
       )}
     </div>
   );
@@ -151,6 +184,8 @@ export function PropertyEditor(props: Props) {
       return <MultiSelect {...props} />;
     case "member":
       return <MemberSelect {...props} />;
+    case "url":
+      return <UrlField {...props} />;
     default:
       return <TextLike {...props} />;
   }

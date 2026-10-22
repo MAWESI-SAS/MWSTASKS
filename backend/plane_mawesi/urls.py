@@ -12,6 +12,7 @@ from plane_mawesi.views import capacity as cp
 from plane_mawesi.views import code as cd
 from plane_mawesi.views import dependencies as dp
 from plane_mawesi.views import estimates as es
+from plane_mawesi.views import favicons as fv
 from plane_mawesi.views import flow as fl
 from plane_mawesi.views import properties as pr
 from plane_mawesi.views import project_logo as pl
@@ -102,6 +103,7 @@ urlpatterns = [
     path(f"api/mawesi/{PROJECT}/cycles/<uuid:cycle_id>/capacity/", cp.CycleCapacityEndpoint.as_view(), name="mawesi-capacity"),
     path(f"api/mawesi/{PROJECT}/flow/", fl.ProjectFlowEndpoint.as_view(), name="mawesi-flow"),
     # Enlace con el código: repositorios del workspace y commits/PRs de cada tarea (solo web).
+    path("api/mawesi/workspaces/<str:slug>/favicon/", fv.FaviconEndpoint.as_view(), name="mawesi-favicon"),
     path("api/mawesi/workspaces/<str:slug>/code-repos/", cd.CodeReposEndpoint.as_view(), name="mawesi-code-repos"),
     path("api/mawesi/workspaces/<str:slug>/code-repos/<uuid:repo_id>/", cd.CodeRepoDetailEndpoint.as_view(), name="mawesi-code-repo"),
     path("api/mawesi/workspaces/<str:slug>/code-repos/<uuid:repo_id>/sync/", cd.CodeRepoSyncEndpoint.as_view(), name="mawesi-code-repo-sync"),

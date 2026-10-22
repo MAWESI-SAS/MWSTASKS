@@ -21,6 +21,7 @@ import {
 import { PropertyEditor } from "../../properties/property-editor";
 import type { TIssuePriorities } from "../../plane";
 import type { TProperty, TValue } from "../../properties/service";
+import { LinkChip } from "../../properties/link-chip";
 import { propertyService } from "../../properties/service";
 import { issueService, tableService } from "../../table/service";
 import type { TPropValue, TTableProperty, TTableRow } from "../../table/service";
@@ -159,12 +160,7 @@ const ProjectTablePage = observer(function ProjectTablePage() {
 
   const valueCell = (p: TTableProperty, v: TPropValue | undefined) => {
     if (v === null || v === undefined) return null;
-    if (p.type === "url")
-      return (
-        <a href={String(v)} target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:underline">
-          {String(v)}
-        </a>
-      );
+    if (p.type === "url") return <LinkChip url={String(v)} className="max-w-full" />;
     if (p.type === "checkbox") return v ? <Check className="size-4" /> : null;
     if (p.type === "member") return <ButtonAvatars showTooltip userIds={String(v)} size="sm" />;
     if (p.type === "select" || p.type === "multi_select") {

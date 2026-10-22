@@ -16,6 +16,7 @@ FIELDS = [
     ("Backend PR Link", "url", []),
     ("Bloqueante", "checkbox", []),
     ("Inicio Real", "date", []),
+    ("Correo Usuario / Líder de célula", "text", []),
 ]
 
 with sync_playwright() as p:
@@ -99,7 +100,25 @@ with sync_playwright() as p:
     checks["historial"] = any("Complexity" in t and "M" in t for t in texts) and len(texts) >= 6
     pg.screenshot(path=f"{OUT}/campos-tarea.png")
 
-    # 6) URL inválida: no se guarda
+    # 5b) El link se ve como en ClickUp: ícono del sitio + nombre del sitio
+    chip = f("Backend PR Link").locator("[data-mawesi=link-chip]")
+    expect(chip).to_have_text("github.com", timeout=10000)
+    expect(chip.locator("img")).to_have_count(1)
+    pg.wait_for_function("(el) => el.complete && el.naturalWidth > 0", arg=chip.locator("img").element_handle(), timeout=15000)
+    checks["link_con_icono"] = chip.get_attribute("href") == "https://github.com/mawesi/pr/42"
+
+    # 5c) Nombre largo: una sola línea cortada con "…", misma altura que las demás filas, nombre completo al pasar el mouse
+    long_row = f("Correo Usuario / Líder de célula")
+    label = long_row.locator("span.truncate").first
+    cut = label.evaluate("(el) => el.scrollWidth > el.clientWidth")
+    same = long_row.evaluate("(el) => el.getBoundingClientRect().height") == f("Story Points").evaluate("(el) => el.getBoundingClientRect().height")
+    label.hover()
+    expect(pg.get_by_text("Correo Usuario / Líder de célula").nth(1)).to_be_visible(timeout=5000)
+    checks["nombre_largo_una_linea"] = cut and same
+    pg.screenshot(path=f"{OUT}/campos-nombre-largo.png")
+
+    # 6) URL inválida: no se guarda (el lápiz abre la edición)
+    f("Backend PR Link").hover(); f("Backend PR Link").locator("[data-mawesi-input=url-edit]").click()
     f("Backend PR Link").locator("input").fill("no-es-url"); f("Backend PR Link").locator("input").press("Enter")
     pg.wait_for_timeout(1500)
     vals2 = pg.evaluate(get, f"/api/mawesi/workspaces/{WS}/projects/{pid}/issues/{iid}/property-values/")

@@ -4,6 +4,8 @@ Gestor de tareas de MAWESI basado en **[Plane](https://github.com/makeplane/plan
 
 - **Registro de horas** por tarea (detalle y vista rápida), historial y **reporte** con filtros y CSV.
 - **Campos propios** por proyecto: texto, URL, número, fecha, sí/no, selección única y múltiple, persona.
+  Los links se ven como en ClickUp: ícono del sitio + nombre (el servidor busca el favicon, sin servicios de terceros).
+  Los nombres largos ocupan una línea y se cortan con "…"; el nombre completo y la descripción salen al pasar el mouse.
 - **Tema y marca MAWESI**: colores, tipografías (Hanken Grotesk, Raleway), marco con gradiente, portadas.
 
 No es un fork completo: se **monta sobre Plane oficial** para poder actualizarlo sin dolor.
