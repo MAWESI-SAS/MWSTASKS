@@ -6,6 +6,7 @@ from django.urls import path
 from plane.urls import urlpatterns as plane_urlpatterns
 
 from plane_mawesi.auth import views as auth
+from plane_mawesi.views import analytics as an
 from plane_mawesi.views import automations as au
 from plane_mawesi.views import board as bd
 from plane_mawesi.views import capacity as cp
@@ -67,8 +68,17 @@ GUARDED = [
          dp.GuardedIssueRelationKeyEndpoint.as_view(http_method_names=["get", "post"]), name="work-item-relation-list"),
 ]
 
+# Analytics → "Created vs Resolved" con la historia migrada y "Resolved" por fecha de cierre (ver views/analytics.py).
+ANALYTICS = [
+    path("api/workspaces/<str:slug>/advance-analytics-charts/", an.WorkspaceCompletionChartEndpoint.as_view(),
+         name="advance-analytics-chart"),
+    path("api/workspaces/<str:slug>/projects/<uuid:project_id>/advance-analytics-charts/",
+         an.ProjectCompletionChartEndpoint.as_view(), name="project-advance-analytics-chart"),
+]
+
 urlpatterns = [
     *GUARDED,
+    *ANALYTICS,
     path("api/mawesi/ping/", w.PingEndpoint.as_view(), name="mawesi-ping"),
     # Login con Microsoft (Plane CE no lo trae). Mismo prefijo /auth/ que los logins de Plane.
     path("auth/microsoft/", auth.MicrosoftInitiateEndpoint.as_view(), name="mawesi-microsoft-initiate"),

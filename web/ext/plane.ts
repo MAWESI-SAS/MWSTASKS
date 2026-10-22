@@ -64,3 +64,12 @@ export { Tooltip } from "@plane/propel/tooltip";
 import webPackageJson from "package.json";
 /** Versión de Plane sobre la que corre MWSTASKS (para la atribución AGPL). */
 export const PLANE_VERSION: string = webPackageJson.version;
+// Analytics → "Created vs Resolved" (overrides/analytics/created-vs-resolved.tsx)
+export { AreaChart } from "@plane/propel/charts/area-chart";
+export { EmptyStateCompact } from "@plane/propel/empty-state";
+export { renderFormattedDate } from "@plane/utils";
+export type { IChartResponse, TChartData } from "@plane/types";
+export { useAnalytics } from "@/hooks/store/use-analytics";
+export { AnalyticsService } from "@/services/analytics.service";
+export { default as AnalyticsSectionWrapper } from "@/components/analytics/analytics-section-wrapper";
+export { ChartLoader } from "@/components/analytics/loaders";

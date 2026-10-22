@@ -34,6 +34,7 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
 | `components/issues/issue-layouts/kanban/headers/group-by-card` | `overrides/kanban/group-by-card.tsx`: con `group_by=state` y sin subgrupos, suma al encabezado de la columna el límite WIP (`conteo/límite`, rojo si se pasa; el conteo es el de Plane con los filtros actuales) y el ícono ⓘ con la definición de terminado (`board/use-board.ts`, un pedido por proyecto) |
 | `components/relations` | `overrides/relations/index.tsx`: suma "Empieza antes/después de" y "Termina antes/después de" (start_before/after, finish_before/after: el backend de Plane CE ya los guarda) a `ISSUE_RELATION_OPTIONS` y a `useTimeLineRelationOptions` (con textos propios). Sus inversos se agregan a `REVERSE_RELATIONS` (objeto exportado de `@plane/constants`) en `dependencies/register.ts` |
 | `components/modules/analytics-sidebar/issue-progress` | `overrides/modules/issue-progress.tsx`: no dibuja "Progress" en el panel de una lista sin fechas (Plane mostraba "Invalid date. Please enter valid date.") |
+| `components/analytics/work-items/created-vs-resolved` | `overrides/analytics/created-vs-resolved.tsx`: copia del gráfico "Created vs Resolved" con un `stackId` distinto por curva (Plane les pone el mismo: apila las curvas y "Created" se ve como creadas + resueltas). Los datos los arma `views/analytics.py`. Revisar al subir Plane |
 | `components/issues/issue-detail-widgets/relations/root` | `overrides/issues/relations-collapsible.tsx`: la sección "Relaciones" sale abierta al entrar a cada tarea (detalle y peek); Plane la arranca cerrada (`openWidgets` por defecto no incluye `relations`) y las relaciones migradas de ClickUp quedaban escondidas. Si se cierra, queda cerrada hasta abrir otra tarea. E2E `web/e2e/relations.py` |
 | `components/common/breadcrumb-link` | `overrides/common/breadcrumb-link.tsx`: no pinta la miga "Modules" (href `/projects/<id>/modules/`); las listas se ordenan solo desde el árbol. El resto de migas las pinta Plane |
 | `helpers/cover-image.helper` | `overrides/helpers/cover-image.ts`: `handleCoverImageChange` completa `cover_image` con `window.location.origin` cuando sale relativa (con `API_BASE_URL=""` Plane manda `/api/assets/...` y `User.cover_image` es URLField → 400 al cambiar el cover del perfil). Quitar si Plane lo arregla |
@@ -98,6 +99,13 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
   permisos leen `slug` de kwargs). Lo cubre `test_contrato_plane.py::test_rutas_que_tapan_las_dependencias`. Lo automático
   (soltar, correr fechas) se dispara con las mismas filas del historial que las reglas (`automations.dispatch` llama a
   `dependencies.dispatch`) y se aplica con la tarea `issue_activity` de Plane (historial y avisos como un cambio a mano).
+- Tipos de tarea (`types.py`, tablas `mawesi_type_fields` y `mawesi_module_types`, migración `0010`): usa `db.IssueType`,
+  `ProjectIssueType` y `Issue.type` de Plane. Nunca marca `IssueType.is_default`: la API pública de Plane lo asigna al crear.
+  El "por defecto del proyecto" va en `ProjectIssueType.is_default`. Lo cubre `test_contrato_plane.py::test_tipos_de_plane_para_tipos_de_tarea`.
+- Analytics "Created vs Resolved" (`views/analytics.py`): `urls.ANALYTICS` repite `advance-analytics-charts` (workspace y
+  proyecto) con subclases que solo cambian `work_item_completion_chart`. Empieza en la tarea más vieja, no en la fecha de
+  creación del workspace o proyecto, y "Resolved" va por `completed_at`. Ciclos y listas siguen con lo de Plane. Lo cubre
+  `test_contrato_plane.py::test_graficos_de_analytics_que_reemplazamos`.
   La web muestra el motivo de un 409/400 escuchando `XMLHttpRequest` (`dependencies/blocked-toast.ts`): Plane deshace su
   cambio optimista pero su aviso es genérico.
 - `ext/nav.ts` agrega "Campos", "SLA", "Plantillas", "Reglas" y "Tablero" a `GROUPED_PROJECT_SETTINGS[WORK_STRUCTURE]`, `PROJECT_SETTINGS_FLAT_MAP` y

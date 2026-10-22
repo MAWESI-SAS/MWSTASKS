@@ -146,3 +146,18 @@ def test_tipos_de_plane_para_tipos_de_tarea():
     assert Issue._meta.get_field("type").related_model is IssueType
     src = inspect.getsource(IssueSerializer.create)
     assert "project_issue_types__project_id=project_id, is_default=True" in src
+
+
+@pytest.mark.contract
+def test_graficos_de_analytics_que_reemplazamos():
+    """views/analytics.py hereda las vistas de Plane y solo cambia work_item_completion_chart."""
+    import inspect
+
+    from plane.app.views.analytic.advance import AdvanceAnalyticsChartEndpoint
+    from plane.app.views.analytic.project_analytics import ProjectAdvanceAnalyticsChartEndpoint
+
+    assert list(inspect.signature(AdvanceAnalyticsChartEndpoint.work_item_completion_chart).parameters) == ["self"]
+    assert list(inspect.signature(ProjectAdvanceAnalyticsChartEndpoint.work_item_completion_chart).parameters) == [
+        "self", "project_id", "cycle_id", "module_id"]
+    assert "self.work_item_completion_chart(" in inspect.getsource(AdvanceAnalyticsChartEndpoint.get)
+    assert "self.work_item_completion_chart(" in inspect.getsource(ProjectAdvanceAnalyticsChartEndpoint.get)

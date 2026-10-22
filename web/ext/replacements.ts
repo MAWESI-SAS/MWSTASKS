@@ -19,6 +19,8 @@ export const REPLACEMENTS: Record<string, string> = {
   "components/issues/issue-detail-widgets/relations/root": "overrides/issues/relations-collapsible.tsx",
   // Panel de una lista: sin "Invalid date" cuando la lista no tiene fechas (casi todas las migradas)
   "components/modules/analytics-sidebar/issue-progress": "overrides/modules/issue-progress.tsx",
+  // Analytics: "Created vs Resolved" con curvas superpuestas (Plane las apila y "Created" parece el doble)
+  "components/analytics/work-items/created-vs-resolved": "overrides/analytics/created-vs-resolved.tsx",
   // Tablero: columnas vacías plegadas en franja vertical
   "components/issues/issue-layouts/kanban/default": "overrides/kanban/kanban-default.tsx",
   // Tablero: límite de tareas (WIP) y definición de terminado en el encabezado de cada columna
