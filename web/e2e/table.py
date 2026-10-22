@@ -53,7 +53,7 @@ with sync_playwright() as p:
     pg.wait_for_timeout(800)
     pg.keyboard.press("Escape")
     # 3. Campo propio de texto: se guarda con Enter
-    cell = row.locator("[data-mawesi=cell-prop-text]").filter(has=pg.locator("input")).first
+    cell = row.locator(f'[data-mawesi=cell-prop-text][data-mawesi-field="{FIELD}"]')
     cell.locator("input").fill("Tecnoquímicas")
     cell.locator("input").press("Enter")
     pg.wait_for_timeout(1500)
@@ -78,7 +78,7 @@ with sync_playwright() as p:
     pg.locator("input[name=search]").fill(name)
     row = pg.locator("[data-mawesi=table-row]", has_text=name)
     checks["persiste"] = target["name"] in row.locator("[data-mawesi=cell-state]").inner_text() \
-        and row.locator("[data-mawesi=cell-prop-text] input").first.input_value() == "Tecnoquímicas"
+        and row.locator(f'[data-mawesi=cell-prop-text][data-mawesi-field="{FIELD}"] input').input_value() == "Tecnoquímicas"
     b.close()
 print(checks)
 sys.exit(0 if all(checks.values()) else 1)

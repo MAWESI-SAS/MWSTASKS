@@ -314,7 +314,7 @@ const ProjectTablePage = observer(function ProjectTablePage() {
                       </td>
                       <td className="whitespace-nowrap px-3 py-1.5">{r.minutes ? formatMinutes(r.minutes) : ""}</td>
                       {props.map((p) => (
-                        <td key={p.id} className="min-w-40 max-w-64 px-1 py-1" title={text(p, r.values[p.id] ?? null)} data-mawesi={`cell-prop-${p.type}`}>
+                        <td key={p.id} className="min-w-40 max-w-64 px-1 py-1" title={text(p, r.values[p.id] ?? null)} data-mawesi={`cell-prop-${p.type}`} data-mawesi-field={p.name}>
                           {canEdit ? (
                             <PropertyEditor
                               prop={asProperty(p)}
