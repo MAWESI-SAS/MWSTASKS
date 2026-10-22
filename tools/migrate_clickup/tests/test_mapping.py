@@ -162,3 +162,8 @@ def test_campos_borrados_en_mwstasks():
              {"external_source": "clickup", "external_id": "b", "removed": True},
              {"external_source": "", "external_id": "", "removed": True}]
     assert M.removed_fields(props) == {"b"}
+
+
+def test_sprints_con_tareas():
+    tareas = [{"list": {"id": "L1"}, "locations": [{"id": "S1"}]}, {"list": {"id": "S2"}}, {"list": None}]
+    assert M.used_list_ids(tareas) == {"L1", "S1", "S2"}

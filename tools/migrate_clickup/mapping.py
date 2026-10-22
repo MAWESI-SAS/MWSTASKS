@@ -57,6 +57,17 @@ def removed_fields(props) -> set:
     return {p["external_id"] for p in props if p.get("removed") and p.get("external_source") == SOURCE}
 
 
+def used_list_ids(tasks) -> set:
+    """Listas de ClickUp donde está alguna de estas tareas (la suya y las demás "locations").
+    Un sprint sin tareas no se crea como ciclo (ni se vuelve a crear si alguien lo borró en MWSTASKS)."""
+    out = set()
+    for t in tasks:
+        if (t.get("list") or {}).get("id"):
+            out.add(t["list"]["id"])
+        out |= {loc["id"] for loc in t.get("locations") or [] if loc.get("id")}
+    return out
+
+
 def used_field_ids(tasks) -> set:
     """Campos de ClickUp con algún valor en estas tareas ("time_estimate" si alguna tiene estimado).
     Solo esos se crean en MWSTASKS: un campo sin uso no se crea (ni se vuelve a crear si alguien lo borró)."""

@@ -160,9 +160,13 @@ class Migration:
         modules = {m["external_id"]: m for m in self.pl.all(self.pl.proj(self.pid, "modules/"))
                    if m.get("external_source") == M.SOURCE and m.get("external_id")}
         self.cycle_by_list, self.module_by_list, self.cycle_info = {}, {}, {}
+        used = M.used_list_ids(self.tasks.values())
         for lst in self.lists:
             ext = f"list:{lst['id']}"
             if M.is_sprint(lst["name"]):
+                if ext not in cycles and lst["id"] not in used:
+                    self.stats["sprints sin tareas (no se crean)"] += 1
+                    continue
                 # Plane no deja agregar tareas (ni editar) un ciclo con fecha de fin pasada:
                 # se crea SIN fechas y las fechas se ponen en grouping(), después de cargar las tareas.
                 if ext not in cycles:
