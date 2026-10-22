@@ -25,6 +25,7 @@ import { LinkChip } from "../../properties/link-chip";
 import { propertyService } from "../../properties/service";
 import { issueService, tableService } from "../../table/service";
 import type { TPropValue, TTableProperty, TTableRow } from "../../table/service";
+import { useProjectTypes } from "../../types/use-types";
 import { cell, downloadCSV } from "../../worklog/csv";
 import { formatMinutes } from "../../worklog/format";
 
@@ -64,7 +65,11 @@ const ProjectTablePage = observer(function ProjectTablePage() {
     setParams(next, { replace: true });
   };
 
-  const props = data?.properties ?? [];
+  const { types } = useProjectTypes(workspaceSlug, projectId);
+  // Lista filtrada con tipo: solo las columnas de los campos de ese tipo (como el panel de la tarea).
+  const listType = moduleId ? types.find((ty) => ty.module_ids.includes(moduleId)) : undefined;
+  const allProps = data?.properties ?? [];
+  const props = listType ? listType.property_ids.map((id) => allProps.find((p) => p.id === id)).filter((p): p is TTableProperty => !!p) : allProps;
   const states = data?.states ?? {};
   const optionName = useMemo(() => {
     const m = new Map<string, { name: string; color: string }>();

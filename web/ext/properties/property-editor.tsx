@@ -86,7 +86,7 @@ function UrlField(props: Props) {
 }
 
 /** Lista desplegable nativa con aspecto transparente y flecha al pasar el mouse (como Plane). */
-function GhostSelect({ value, disabled, onSave, children, testId }: { value: string; disabled?: boolean; onSave: (v: string) => void; children: React.ReactNode; testId: string }) {
+export function GhostSelect({ value, disabled, onSave, children, testId }: { value: string; disabled?: boolean; onSave: (v: string) => void; children: React.ReactNode; testId: string }) {
   return (
     <div className="group relative w-full">
       <select

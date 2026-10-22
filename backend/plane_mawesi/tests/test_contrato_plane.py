@@ -128,3 +128,21 @@ def test_rutas_que_tapan_las_dependencias():
     assert {"partial_update", "update", "retrieve", "destroy"} <= set(dir(IssueViewSet))
     assert "patch" in dir(IssueDetailAPIEndpoint) and "post" in dir(IssueRelationListCreateAPIEndpoint)
     assert "create" in dir(IssueRelationViewSet)
+
+
+@pytest.mark.contract
+def test_tipos_de_plane_para_tipos_de_tarea():
+    """types.py usa db.IssueType + ProjectIssueType + Issue.type. La API pública de Plane, al crear, toma el tipo con
+    IssueType.is_default (por eso nunca lo marcamos) y Plane saca de sus listas las tareas de tipo épica."""
+    import inspect
+
+    from plane.api.serializers.issue import IssueSerializer
+    from plane.db.models import Issue, IssueType
+    from plane.db.models.issue_type import ProjectIssueType
+
+    fields = {f.name for f in IssueType._meta.get_fields()}
+    assert {"workspace", "name", "description", "logo_props", "is_epic", "is_default", "is_active", "deleted_at"} <= fields
+    assert {"project", "issue_type", "is_default", "level", "deleted_at"} <= {f.name for f in ProjectIssueType._meta.get_fields()}
+    assert Issue._meta.get_field("type").related_model is IssueType
+    src = inspect.getsource(IssueSerializer.create)
+    assert "project_issue_types__project_id=project_id, is_default=True" in src

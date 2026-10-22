@@ -394,3 +394,32 @@ class DependencyPolicy(ProjectBaseModel):
         constraints = [
             models.UniqueConstraint(fields=["project"], condition=models.Q(deleted_at__isnull=True), name="mawesi_dep_policy_one_per_project"),
         ]
+
+
+class TypeField(ProjectBaseModel):
+    """Campo propio que se ve en un tipo de tarea (db.IssueType de Plane, ligado al proyecto por ProjectIssueType).
+    Una tarea con tipo muestra solo estos campos; sin tipo, todos (ver plane_mawesi/types.py)."""
+
+    issue_type = models.ForeignKey("db.IssueType", on_delete=models.CASCADE, related_name="mawesi_fields")
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="mawesi_types")
+    sort_order = models.FloatField(default=65535)
+
+    class Meta:
+        db_table = "mawesi_type_fields"
+        ordering = ("sort_order", "created_at")
+        constraints = [
+            models.UniqueConstraint(fields=["issue_type", "property"], condition=models.Q(deleted_at__isnull=True), name="mawesi_type_field_unique"),
+        ]
+
+
+class ModuleType(ProjectBaseModel):
+    """Tipo por defecto de las tareas de una lista (módulo), como en ClickUp donde los campos son de la lista."""
+
+    module = models.ForeignKey("db.Module", on_delete=models.CASCADE, related_name="mawesi_type")
+    issue_type = models.ForeignKey("db.IssueType", on_delete=models.CASCADE, related_name="mawesi_modules")
+
+    class Meta:
+        db_table = "mawesi_module_types"
+        constraints = [
+            models.UniqueConstraint(fields=["module"], condition=models.Q(deleted_at__isnull=True), name="mawesi_module_type_one_per_module"),
+        ]

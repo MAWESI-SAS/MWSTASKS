@@ -22,6 +22,7 @@ from plane_mawesi.views import sla as sl
 from plane_mawesi.views import table as tb
 from plane_mawesi.views import templates as tp
 from plane_mawesi.views import timers as tm
+from plane_mawesi.views import types as ty
 from plane_mawesi.views import wiki as wk
 from plane_mawesi.views import worklogs as w
 
@@ -90,6 +91,13 @@ urlpatterns = [
     path(f"api/mawesi/{PROJECT}/automations/", au.AutomationsEndpoint.as_view(), name="mawesi-automations"),
     path(f"api/mawesi/{PROJECT}/automations/<uuid:rule_id>/", au.AutomationDetailEndpoint.as_view(), name="mawesi-automation"),
     # Estimado y restante en horas (web y API key: los empleados AI también estiman).
+    path(f"api/mawesi/{PROJECT}/types/", ty.TypesEndpoint.as_view(), name="mawesi-types"),
+    path(f"api/mawesi/{PROJECT}/types/<uuid:type_id>/", ty.TypeDetailEndpoint.as_view(), name="mawesi-type"),
+    path(f"api/mawesi/{PROJECT}/issue-types/", ty.IssueTypesBatchEndpoint.as_view(), name="mawesi-issue-types"),
+    path(f"api/mawesi/{ISSUE}/type/", ty.IssueTypeEndpoint.as_view(), name="mawesi-issue-type"),
+    path(f"api/v1/mawesi/{PROJECT}/types/", ty.TypesKeyEndpoint.as_view(), name="mawesi-types-key"),
+    path(f"api/v1/mawesi/{PROJECT}/issue-types/", ty.IssueTypesBatchKeyEndpoint.as_view(), name="mawesi-issue-types-key"),
+    path(f"api/v1/mawesi/{ISSUE}/type/", ty.IssueTypeKeyEndpoint.as_view(), name="mawesi-issue-type-key"),
     path(f"api/mawesi/{ISSUE}/estimate/", es.IssueEstimateEndpoint.as_view(), name="mawesi-estimate"),
     path(f"api/mawesi/{PROJECT}/estimates/", es.EstimatesBatchEndpoint.as_view(), name="mawesi-estimates"),
     path(f"api/v1/mawesi/{ISSUE}/estimate/", es.IssueEstimateKeyEndpoint.as_view(), name="mawesi-estimate-key"),
