@@ -11,6 +11,7 @@ from plane_mawesi.views import automations as au
 from plane_mawesi.views import board as bd
 from plane_mawesi.views import capacity as cp
 from plane_mawesi.views import code as cd
+from plane_mawesi.views import comments as cm
 from plane_mawesi.views import dependencies as dp
 from plane_mawesi.views import estimates as es
 from plane_mawesi.views import favicons as fv
@@ -112,6 +113,9 @@ urlpatterns = [
     path(f"api/mawesi/{PROJECT}/estimates/", es.EstimatesBatchEndpoint.as_view(), name="mawesi-estimates"),
     path(f"api/v1/mawesi/{ISSUE}/estimate/", es.IssueEstimateKeyEndpoint.as_view(), name="mawesi-estimate-key"),
     path(f"api/v1/mawesi/{PROJECT}/estimates/", es.EstimatesBatchKeyEndpoint.as_view(), name="mawesi-estimates-key"),
+    # Último comentario por tarea, en lote (Hub: resumen del informe de mejoras).
+    path(f"api/mawesi/{PROJECT}/last-comments/", cm.LastCommentsEndpoint.as_view(), name="mawesi-last-comments"),
+    path(f"api/v1/mawesi/{PROJECT}/last-comments/", cm.LastCommentsKeyEndpoint.as_view(), name="mawesi-last-comments-key"),
     # Dependencias: bloqueos y fechas que chocan, para las tarjetas (solo web).
     path(f"api/mawesi/{PROJECT}/dependencies/", dp.DependencyStatusEndpoint.as_view(), name="mawesi-dependencies"),
     # Tablero: límites WIP, definición de terminado y colores de tarjeta (solo web).

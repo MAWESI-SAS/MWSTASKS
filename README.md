@@ -79,6 +79,12 @@ Tests: `docker build -t plane-backend-mawesi-test:dev -f backend/Dockerfile.test
 | `GET/PATCH …/issues/<iid>/property-values/` | `{property_id: valor}` / `{"values": {property_id: valor\|null}}` todo-o-nada | Admin y miembro |
 | `GET …/projects/<pid>/property-values/?issue_ids=a,b` | `{issue_id: {property_id: valor}}` | Admin y miembro |
 
+## Último comentario en lote
+
+`GET workspaces/<slug>/projects/<pid>/last-comments/?issue_ids=a,b` (prefijos como horas) → `{issue_id: {id, comment_html,
+actor, created_at}}`, solo de las tareas con comentarios, hasta 500 ids. Admin y miembro. Lo usa el Hub para el resumen del
+informe de mejoras: comentar no mueve `Issue.updated_at` y la API de Plane da los comentarios de a una tarea.
+
 Tipos y valor: `text`/`url` (string), `number`, `date` (`AAAA-MM-DD`), `checkbox` (bool), `select` (id de opción),
 `multi_select` (lista de ids), `member` (id de usuario miembro del proyecto).
 
