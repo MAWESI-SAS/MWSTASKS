@@ -5,6 +5,7 @@ El token tiene los mismos permisos que su dueño.
 
 - **Referencia completa (665 operaciones, con quién puede usar cada una):** https://tasks.mawesi.online/api/mawesi/docs/
   (hay que estar logueado). El schema OpenAPI está en `/api/mawesi/docs/schema/?format=json`.
+- **CLI para personas y agentes:** [`tools/mwstasks-cli`](../tools/mwstasks-cli) (`mws`). Cubre todas las operaciones.
 - **Esta guía:** cómo entrar, qué permisos tiene el token, los límites y ejemplos probados.
 
 ## 1. Crear el token

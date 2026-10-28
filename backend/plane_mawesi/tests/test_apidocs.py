@@ -4,7 +4,7 @@
 import pytest
 from rest_framework.test import APIClient
 
-from plane_mawesi.apidocs_catalog import CATALOG
+from plane_mawesi.apidocs_catalog import CATALOG, PLANE
 
 SCHEMA = "/api/mawesi/docs/schema/?format=json"
 NO_DOC = {"/api/mawesi/ping/", "/api/mawesi/auth-providers/"}
@@ -61,3 +61,10 @@ class TestDocumentacion:
         types = schema["paths"]["/api/mawesi/workspaces/{slug}/projects/{project_id}/types/"]["post"]
         assert types["summary"] == "Crear un tipo"
         assert types["requestBody"]["content"]["application/json"]["example"]["color"] == "red"
+
+    def test_resumenes_de_plane_en_rutas_que_existen(self, schema):
+        have = {(m.upper(), p) for m, p, _ in ops(schema)}
+        assert {(m, "/api/" + p) for m, p in PLANE} - have == set(), "PLANE documenta rutas que no existen"
+        create = schema["paths"]["/api/workspaces/{slug}/projects/{project_id}/issues/"]["post"]
+        assert create["summary"] == "Crear una tarea" and "**Quién:**" in create["description"]
+        assert create["requestBody"]["content"]["application/json"]["example"]["priority"] == "high"

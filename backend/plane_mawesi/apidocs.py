@@ -14,7 +14,7 @@ import re
 
 from drf_spectacular.openapi import AutoSchema
 
-from plane_mawesi.apidocs_catalog import CATALOG
+from plane_mawesi.apidocs_catalog import CATALOG, PLANE
 from plane_mawesi.tokens import DENIED, DENIED_MESSAGE
 
 SKIP = ("/api/instances/", "/api/public/", "/api/mawesi/docs/")
@@ -164,8 +164,16 @@ def postprocess(result, generator, request, public):
             op["tags"] = [_tag(path)]
             entry = CATALOG.get((method.upper(), path[len(prefix):])) if prefix.startswith("/api/") and "mawesi" in prefix \
                 else None
+            plane_entry = PLANE.get((method.upper(), path[len("/api/"):])) if prefix == "/api/" else None
             if entry:
                 _apply_catalog(op, entry)
+            elif plane_entry:
+                op["summary"] = plane_entry["summary"]
+                op["description"] = "\n\n".join(x for x in (plane_entry["description"], op.get("description", "")) if x)
+                if plane_entry["body"] is not None:
+                    content = op.setdefault("requestBody", {}).setdefault("content", {})
+                    content.setdefault("application/json", {}).setdefault("schema", {"type": "object"})
+                    content["application/json"]["example"] = plane_entry["body"]
             elif not op.get("summary"):
                 op["summary"] = _summary(method, path)
             notes = [f"**Familia:** {family}"]

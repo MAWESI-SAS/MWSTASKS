@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mwstasks-cli"
+version = "1.0.0"
+description = "CLI de MWSTASKS (para personas y agentes): toda la API con el token personal"
+requires-python = ">=3.9"
+license = { text = "AGPL-3.0-only" }
+dependencies = []
+
+[project.scripts]
+mws = "mwstasks_cli.cli:main"
+
+[tool.setuptools]
+packages = ["mwstasks_cli"]
+
+[tool.setuptools.package-data]
+mwstasks_cli = ["GUIDE.md"]

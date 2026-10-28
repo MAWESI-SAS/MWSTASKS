@@ -49,7 +49,7 @@ CATALOG = {
     ("GET", I + "worklogs/"): op("Horas de una tarea", "Lista los registros de horas de la tarea.", MEMBERS,
                                  resp=[WORKLOG]),
     ("POST", I + "worklogs/"): op(
-        "Registrar horas", "Crea un registro de horas. `member` es opcional: sin él, las horas son de quien llama. "
+        "Registrar horas", "Crea un registro de horas. `duration_minutes` y `date` (AAAA-MM-DD) son obligatorios. `member` es opcional: sin él, las horas son de quien llama. "
         "Registrar horas de otra persona: solo admins. `duration_minutes` va de 1 a 1440. Sin fechas futuras.", MEMBERS,
         body={"duration_minutes": 90, "date": "2026-10-27", "description": "Revisión con el cliente"},
         resp=WORKLOG, status=201),
@@ -239,4 +239,98 @@ CATALOG = {
     ("POST", P + "logo/"): op("Subir el logo del proyecto", "Multipart, campo `file`. PNG, JPG o WebP de hasta 512 KB.",
                               ADMIN),
     ("DELETE", P + "logo/"): op("Quitar el logo del proyecto", "Vuelve al emoji o ícono.", ADMIN),
+}
+
+# Las operaciones de Plane más usadas, con resumen en español y el cuerpo que esperan (leído del código de Plane).
+# Rutas completas (sin el prefijo /api/ de la familia web). Solo cambia el texto: "Quién" sigue saliendo de Plane.
+WP = "workspaces/{slug}/projects/{project_id}/"
+WI = WP + "issues/{issue_id}/"
+
+
+def plane(summary, description="", body=None):
+    return {"summary": summary, "description": description, "body": body}
+
+
+PLANE = {
+    ("GET", "workspaces/{slug}/projects/"): plane("Proyectos del workspace"),
+    ("GET", WP + "issues/"): plane("Listar tareas del proyecto", "Con páginas: `per_page` y `cursor` (`next_cursor`)."),
+    ("POST", WP + "issues/"): plane(
+        "Crear una tarea", "Prioridades: urgent, high, medium, low, none. Fechas AAAA-MM-DD.",
+        {"name": "Revisar informe", "description_html": "<p>Detalle</p>", "priority": "high", "state_id": UUID,
+         "assignee_ids": [UUID2], "label_ids": [], "parent_id": None, "start_date": "2026-10-28",
+         "target_date": "2026-11-04"}),
+    ("GET", WP + "issues/{pk}/"): plane("Ver una tarea"),
+    ("PATCH", WP + "issues/{pk}/"): plane(
+        "Cambiar una tarea", "Mandá solo lo que cambia: estado, responsables, prioridad, fechas, nombre, descripción, "
+        "etiquetas, tarea padre. Si una dependencia lo frena: 409 `dependency_blocked`.",
+        {"state_id": UUID, "assignee_ids": [UUID2], "priority": "urgent"}),
+    ("DELETE", WP + "issues/{pk}/"): plane("Borrar una tarea"),
+    ("POST", WP + "issues/{pk}/archive/"): plane("Archivar una tarea", "Solo tareas terminadas o canceladas."),
+    ("DELETE", WP + "issues/{pk}/archive/"): plane("Sacar una tarea del archivo"),
+    ("GET", WP + "issues/{issue_id}/history/"): plane(
+        "Historial de una tarea", "`activity_type` es obligatorio: issue-property (cambios) o issue-comment "
+        "(comentarios). Sin él, Plane responde 500."),
+    ("GET", WI + "comments/"): plane("Comentarios de una tarea"),
+    ("POST", WI + "comments/"): plane("Comentar una tarea", "", {"comment_html": "<p>Listo para revisar</p>"}),
+    ("PATCH", WI + "comments/{pk}/"): plane("Cambiar un comentario", "", {"comment_html": "<p>Texto nuevo</p>"}),
+    ("DELETE", WI + "comments/{pk}/"): plane("Borrar un comentario"),
+    ("GET", WI + "sub-issues/"): plane("Subtareas de una tarea"),
+    ("POST", WI + "sub-issues/"): plane("Agregar subtareas", "Convierte tareas existentes en subtareas de esta.",
+                                        {"sub_issue_ids": [UUID2]}),
+    ("GET", WI + "issue-relation/"): plane("Relaciones de una tarea"),
+    ("POST", WI + "issue-relation/"): plane(
+        "Relacionar tareas", "`relation_type`: relates_to, duplicate, blocked_by, blocking, start_before, start_after, "
+        "finish_before, finish_after. Rechaza (400) una dependencia que cierra un círculo.",
+        {"relation_type": "blocked_by", "issues": [UUID2]}),
+    ("POST", WI + "remove-relation/"): plane("Quitar una relación", "", {"relation_type": "blocked_by",
+                                                                         "related_issue": UUID2}),
+    ("GET", WI + "issue-links/"): plane("Links de una tarea"),
+    ("POST", WI + "issue-links/"): plane("Agregar un link a una tarea", "", {"url": "https://dev.azure.com/…",
+                                                                            "title": "PR 120"}),
+    ("DELETE", WI + "issue-links/{pk}/"): plane("Quitar un link"),
+    ("POST", WI + "modules/"): plane("Poner una tarea en listas", "Una lista es un módulo de Plane. Las carpetas son "
+                                     "listas con nombre «Carpeta / Lista».", {"modules": [UUID], "removed_modules": []}),
+    ("POST", WI + "issue-subscribers/"): plane("Suscribir personas a una tarea", "", {"subscribers": [UUID2]}),
+    ("POST", WI + "subscribe/"): plane("Suscribirme a una tarea"),
+    ("DELETE", WI + "subscribe/"): plane("Desuscribirme de una tarea"),
+    ("POST", WI + "reactions/"): plane("Reaccionar a una tarea", "", {"reaction": "👍"}),
+    ("GET", WP + "states/"): plane("Estados del proyecto", "Grupos: backlog, unstarted, started, completed, cancelled."),
+    ("POST", WP + "states/"): plane("Crear un estado", "", {"name": "En QA", "group": "started", "color": "#f59e0b"}),
+    ("GET", WP + "issue-labels/"): plane("Etiquetas del proyecto"),
+    ("POST", WP + "issue-labels/"): plane("Crear una etiqueta", "", {"name": "staging", "color": "#3b82f6"}),
+    ("GET", WP + "members/"): plane("Miembros del proyecto", "`role`: 20 admin, 15 miembro, 5 invitado."),
+    ("GET", WP + "cycles/"): plane("Ciclos del proyecto"),
+    ("POST", WP + "cycles/"): plane("Crear un ciclo", "Las dos fechas o ninguna.",
+                                    {"name": "Sprint 45", "start_date": "2026-11-09", "end_date": "2026-11-20"}),
+    ("PATCH", WP + "cycles/{pk}/"): plane("Cambiar un ciclo", "", {"name": "Sprint 45 (corto)"}),
+    ("GET", WP + "cycles/{cycle_id}/cycle-issues/"): plane("Tareas de un ciclo"),
+    ("POST", WP + "cycles/{cycle_id}/cycle-issues/"): plane("Poner tareas en un ciclo", "", {"issues": [UUID2]}),
+    ("DELETE", WP + "cycles/{cycle_id}/cycle-issues/{issue_id}/"): plane("Sacar una tarea de un ciclo"),
+    ("POST", WP + "cycles/{cycle_id}/transfer-issues/"): plane("Pasar las tareas abiertas a otro ciclo", "",
+                                                               {"new_cycle_id": UUID}),
+    ("GET", WP + "modules/"): plane("Listas del proyecto", "Las carpetas son listas con nombre «Carpeta / Lista»."),
+    ("POST", WP + "modules/"): plane("Crear una lista", "Para que quede dentro de una carpeta: «Carpeta / Lista».",
+                                     {"name": "Soporte - TQ / Incidentes"}),
+    ("PATCH", WP + "modules/{pk}/"): plane("Cambiar una lista", "Cambiar «Carpeta / …» la mueve de carpeta.",
+                                           {"name": "Backlog - TQ / Mejoras 2027"}),
+    ("GET", WP + "modules/{module_id}/issues/"): plane("Tareas de una lista"),
+    ("POST", WP + "modules/{module_id}/issues/"): plane("Poner tareas en una lista", "", {"issues": [UUID2]}),
+    ("DELETE", WP + "modules/{module_id}/issues/{issue_id}/"): plane("Sacar una tarea de una lista"),
+    ("GET", WP + "pages/"): plane("Páginas del proyecto"),
+    ("POST", WP + "pages/"): plane("Crear una página", "`access`: 0 pública, 1 privada. Para el contenido usá "
+                                   "`mws page-write` o PATCH …/description/.",
+                                   {"name": "Manual de soporte", "access": 0}),
+    ("PATCH", WP + "pages/{page_id}/description/"): plane(
+        "Cambiar el contenido de una página", "Mandá `description_html` y `description_binary: \"\"` para que el "
+        "editor de la web lo rearme con el HTML nuevo.", {"description_html": "<h2>Título</h2><p>Texto</p>",
+                                                          "description_binary": ""}),
+    ("GET", WP + "views/"): plane("Vistas guardadas del proyecto"),
+    ("GET", "workspaces/{slug}/search/"): plane("Buscar en el workspace", "`search`: texto. Busca tareas, proyectos, "
+                                                "ciclos, listas y páginas."),
+    ("GET", WP + "search-issues/"): plane("Buscar tareas del proyecto", "`search`: texto."),
+    ("GET", "workspaces/{slug}/users/notifications/"): plane("Mis notificaciones"),
+    ("POST", "workspaces/{slug}/users/notifications/{pk}/read/"): plane("Marcar una notificación como leída"),
+    ("POST", "workspaces/{slug}/users/notifications/mark-all-read/"): plane("Marcar todas las notificaciones como leídas"),
+    ("GET", "workspaces/{slug}/members/"): plane("Miembros del workspace"),
+    ("GET", "users/me/"): plane("Mi perfil"),
 }
