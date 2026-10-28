@@ -30,6 +30,8 @@ SCHEMA = {"paths": {
         "post": {"operationId": "worklogs_create", "summary": "Registrar horas", "tags": ["Horas"], "description": ""}},
     "/api/users/api-tokens/": {"get": {"operationId": "tokens", "summary": "Listar: api tokens", "tags": ["Mi usuario"],
                                        "description": "**Con token: no.**"}},
+    "/api/v1/workspaces/{slug}/projects/{project_id}/work-items/": {
+        "post": {"operationId": "v1_create", "summary": "Create a work item", "tags": ["Tareas"]}},
     "/api/workspaces/{slug}/projects/{project_id}/cycles/{cycle_id}/cycle-issues/": {
         "post": {"operationId": "cycle_add", "summary": "Poner tareas en un ciclo", "tags": ["Ciclos"]}},
 }}
@@ -119,6 +121,10 @@ def test_busca_con_sinonimos_y_ordena(server):
     assert code == 0 and out["ops"][0]["id"] == "issues_create"
     assert mws("ops", "poner", "tarea", "en", "ciclo")[1]["ops"][0]["id"] == "cycle_add"
     assert mws("ops", "--tags")[1]["total"] == 7
+    # v1 repite lo de la web: oculta por defecto, visible con --v1 y usable por id
+    assert "v1_create" not in [o["id"] for o in mws("ops", "crear", "tarea")[1]["ops"]]
+    assert "v1_create" in [o["id"] for o in mws("ops", "crear", "tarea", "--v1")[1]["ops"]]
+    assert mws("op", "v1_create")[0] == 0
     assert "tips" in mws("ops", "adjuntar", "archivo")[1]
 
 
@@ -150,6 +156,11 @@ def test_lo_que_sobra_va_a_la_url_y_dry_run_no_llama(server):
     n = len(Fake.log)
     code, out, _ = mws("run", "issues_patch", f"project_id={P}", "pk=abc", "--dry-run", "-d", "name=x")
     assert code == 0 and out["dry_run"] and out["url"].endswith(f"/projects/{P}/issues/abc/") and len(Fake.log) == n
+
+
+def test_project_como_filtro_va_como_uuid(server):
+    mws("call", "GET", "/api/workspaces/{slug}/issues/", "project=TQ", "assignees=u1")
+    assert last("GET")["query"] == {"project": [P], "assignees": ["u1"]}
 
 
 def test_falta_un_parametro(server):

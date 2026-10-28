@@ -17,6 +17,11 @@ SCHEMA_PATH = "/api/mawesi/docs/schema/"
 CACHE_TTL = 6 * 3600
 METHODS = ("get", "post", "put", "patch", "delete")
 PARAM = re.compile(r"\{([^}]+)\}")
+# `/api/v1/…` repite lo de la web con otros nombres (work-items = issues, links = issue-links, …) y `/api/v1/mawesi/…`
+# es una copia de `/api/mawesi/…`. Para no confundir, `mws ops` muestra solo la web y MAWESI; v1 sigue usable.
+HIDDEN_PREFIX = "/api/v1/"
+# Nombres viejos de Plane para lo mismo (inbox = intake).
+HIDDEN_ALIASES = ("/inbox-issues/", "/inboxes/")
 
 
 @dataclass
@@ -140,6 +145,11 @@ def _variants(term):
     for key in {term, base, base.rstrip("e") if base.endswith("es") else base}:
         out += SYNONYMS.get(key, [])
     return [plain(x) for x in out] + ([base] if base != term else [])
+
+
+def principal(ops):
+    """Una versión de cada función: sin la familia v1 ni los nombres viejos."""
+    return [op for op in ops if not op.path.startswith(HIDDEN_PREFIX) and not any(a in op.path for a in HIDDEN_ALIASES)]
 
 
 def search(ops, words="", tag=""):

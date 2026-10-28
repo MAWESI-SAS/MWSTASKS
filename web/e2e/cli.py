@@ -46,8 +46,12 @@ with sync_playwright() as p, tempfile.TemporaryDirectory() as tmp:
         schema = json.loads(urllib.request.urlopen(urllib.request.Request(
             BASE + "/api/mawesi/docs/schema/?format=json", headers={"X-Api-Key": token})).read())
         total = sum(len([m for m in v if m in ("get", "post", "put", "patch", "delete")]) for v in schema["paths"].values())
-        checks["ops_ve_todo_el_schema"] = mws("ops", "--tags", env=env)[1]["total"] == total
-        ops = mws("ops", "--limit", "100000", env=env)[1]["ops"]
+        checks["ops_ve_todo_el_schema"] = mws("ops", "--tags", "--v1", env=env)[1]["total"] == total
+        principal = sum(1 for p_ in schema["paths"] if not p_.startswith("/api/v1/")
+                        and "/inbox-issues/" not in p_ and "/inboxes/" not in p_ for m in schema["paths"][p_]
+                        if m in ("get", "post", "put", "patch", "delete"))
+        checks["sin_duplicados_v1_por_defecto"] = mws("ops", "--tags", env=env)[1]["total"] == principal
+        ops = mws("ops", "--v1", "--limit", "100000", env=env)[1]["ops"]
         failed = []
         for op in ops:
             params = [seg[1:-1] for part in op["path"].split("/") for seg in part.replace("}-{", "} {").split() if seg.startswith("{")]

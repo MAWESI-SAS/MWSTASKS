@@ -97,7 +97,7 @@ class Resolver:
             raise MissingParam("Faltan parámetros de la ruta: " + ", ".join(missing)
                                + ". Pasalos como clave=valor (ver `mws op <id>`).")
         if project_ref and "project_id" not in names:
-            args["project"] = project_ref  # p. ej. filtros que lo aceptan por query
+            args["project"] = self.project_id(slug, project_ref)  # filtro ?project=<uuid> (p. ej. tareas del workspace)
         if issue_ref and not issue:
             args["issue"] = issue_ref
         real = PARAM.sub(lambda m: urllib.parse.quote(str(values[m.group(1)]), safe=""), path)

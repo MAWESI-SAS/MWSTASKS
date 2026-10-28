@@ -123,6 +123,8 @@ def parser():
     o.add_argument("--tags", action="store_true", help="lista los grupos con cuántas operaciones tienen")
     o.add_argument("--limit", type=int, default=50)
     o.add_argument("--refresh", action="store_true", help="volver a pedir el schema al servidor")
+    o.add_argument("--v1", action="store_true",
+                   help="incluir la API v1 (repite lo de la web con otros nombres; oculta por defecto)")
     d = sub.add_parser("op", help="detalle de una operación: parámetros, ejemplo de cuerpo, quién puede")
     d.add_argument("ref", help='id de la operación o "MÉTODO /ruta"')
     r = sub.add_parser("run", help="ejecutar una operación del schema")
@@ -180,6 +182,8 @@ def run(argv=None):
               "default_workspace": resolver.workspace}, args.compact)
     elif args.cmd == "ops":
         ops = ops_of(client, args.refresh)
+        if not args.v1:
+            ops = schema.principal(ops)
         if args.tags:
             counts = {}
             for op in ops:
