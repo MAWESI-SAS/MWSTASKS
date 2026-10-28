@@ -11,7 +11,9 @@ services:
       MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
       MICROSOFT_TENANT_ID: ${MICROSOFT_TENANT_ID:-}
       MICROSOFT_ALLOWED_DOMAINS: ${MICROSOFT_ALLOWED_DOMAINS:-}
-  worker: { image: plane-backend-mawesi:dev }
+      WEBHOOK_ALLOWED_HOSTS: "${WEBHOOK_ALLOWED_HOSTS:-wh-catcher.local}"
+  # Webhooks de prueba a un receptor local (contenedor con alias `wh-catcher.local` en la red del stack; Django pide un nombre con punto): Plane bloquea IPs privadas.
+  worker: { image: plane-backend-mawesi:dev, environment: { WEBHOOK_ALLOWED_HOSTS: "${WEBHOOK_ALLOWED_HOSTS:-wh-catcher.local}" } }
   beat-worker: { image: plane-backend-mawesi:dev }
   migrator: { image: plane-backend-mawesi:dev }
   plane-minio: { image: "docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z" }
