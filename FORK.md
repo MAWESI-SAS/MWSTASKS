@@ -151,6 +151,21 @@ Login con Microsoft (`plane_mawesi/auth/`): `MicrosoftOAuthProvider` hereda `pla
 `/auth/microsoft/` y `/auth/microsoft/callback/`, antes de las de Plane. Config solo por env (`MICROSOFT_*`), sin UI en god-mode.
 `Account.provider="microsoft"` no está en `PROVIDER_CHOICES` de Plane (Django no lo valida en DB). Contrato: `test_molde_oauth_para_microsoft`.
 
+Token personal en toda la API (`tokens.py`): `with_tokens()` copia `plane.urls.urlpatterns` (recorre los `URLResolver`) y
+vuelve a crear con `as_view(**initkwargs)` cada vista de `/api/…` y `/api/mawesi/…` que acepta sesión, con
+`authentication_classes = [TokenAuthentication, …las de Plane]` y `throttle_classes += ApiKeyRateThrottle`. No toca
+`/api/v1/`, `/api/instances/` ni `/api/public/`. Usa `plane.api.middleware.api_authentication.APIKeyAuthentication`
+(`get_api_token`, `validate_api_token`), `plane.api.rate_limit.ApiKeyRateThrottle` (deja `X-RateLimit-*` en
+`request.META`; `RateLimitHeadersMiddleware` los pasa a la respuesta) y que las bases de `plane.app.views.base` usen
+`BaseSessionAuthentication`. El control de dependencias trata un PATCH con token por `/api/…` como la web (solo
+`/api/v1/` deja pasar a un admin con token). Contrato: `test_tokens.py::test_contrato_rutas_de_la_web_con_token`.
+
+Documentación de la API (`apidocs.py`, `views/apidocs.py`): drf-spectacular de la imagen de Plane (Plane lo apaga con
+`ENABLE_DRF_SPECTACULAR`; nosotros lo sumamos a `INSTALLED_APPS` y usamos settings propios). "Quién" sale del decorador
+`allow_permission` de Plane leyendo su closure (`allowed_roles`, `level`, `creator`, `model`) y de los nombres de sus
+clases de permiso (`PERMISSION_TEXT`). Mientras se arma el schema se calla el logger `plane.exception` en ese hilo.
+Contrato: `test_apidocs.py` (roles de `bulk-create-labels`, catálogo MAWESI al día).
+
 Historial: escribimos filas `IssueActivity(field="worklog")` directamente. Los guests de un proyecto las verían en el
 historial core (hoy no hay guests).
 

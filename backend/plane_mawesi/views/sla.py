@@ -1,6 +1,6 @@
 # Copyright (c) 2026-present MAWESI S.A.S.
 # SPDX-License-Identifier: AGPL-3.0-only
-"""SLA por proyecto (plazo por prioridad en horas hábiles) y tiempo en cada estado. Solo web (sesión)."""
+"""SLA por proyecto (plazo por prioridad en horas hábiles) y tiempo en cada estado."""
 import datetime as dt
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 

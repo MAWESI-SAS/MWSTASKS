@@ -1,6 +1,6 @@
 # Copyright (c) 2026-present MAWESI S.A.S.
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Repetición de una tarea (solo web). Ver: admin y miembro. Cambiar o quitar: admin y miembro (igual que editar
+"""Repetición de una tarea. Ver: admin y miembro. Cambiar o quitar: admin y miembro (igual que editar
 la tarea en Plane)."""
 from django.db import IntegrityError, transaction
 from rest_framework import status

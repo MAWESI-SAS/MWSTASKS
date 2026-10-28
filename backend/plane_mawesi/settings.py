@@ -24,3 +24,11 @@ finally:
 
 INSTALLED_APPS = [*INSTALLED_APPS, "plane_mawesi"]
 ROOT_URLCONF = "plane_mawesi.urls"
+
+# Documentación de la API (/api/mawesi/docs/): drf-spectacular ya viene en la imagen de Plane (ver apidocs.py).
+if "drf_spectacular" not in INSTALLED_APPS:
+    INSTALLED_APPS.append("drf_spectacular")
+# Headers del límite del token también en las rutas de la web (ver tokens.py).
+MIDDLEWARE = [*MIDDLEWARE, "plane_mawesi.tokens.RateLimitHeadersMiddleware"]  # noqa: F405
+REST_FRAMEWORK = {**REST_FRAMEWORK, "DEFAULT_SCHEMA_CLASS": "plane_mawesi.apidocs.SafeAutoSchema"}  # noqa: F405
+from plane_mawesi.apidocs_settings import SPECTACULAR_SETTINGS  # noqa: E402,F401

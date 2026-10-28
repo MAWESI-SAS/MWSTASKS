@@ -1,6 +1,6 @@
 # Copyright (c) 2026-present MAWESI S.A.S.
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Reglas automáticas por proyecto (solo web). Ver: admin y miembro. Crear, cambiar, apagar y borrar: solo admin
+"""Reglas automáticas por proyecto. Ver: admin y miembro. Crear, cambiar, apagar y borrar: solo admin
 (afectan las tareas de todos)."""
 from rest_framework import status
 from rest_framework.response import Response

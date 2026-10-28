@@ -1,6 +1,6 @@
 # Copyright (c) 2026-present MAWESI S.A.S.
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Plantillas de tarea por proyecto. Solo web (sesión).
+"""Plantillas de tarea por proyecto.
 Ver y usar: admin y miembro. Crear: admin y miembro. Editar y borrar: admin o quien la creó."""
 from django.db import IntegrityError, transaction
 from rest_framework import status

@@ -1,6 +1,6 @@
 # Copyright (c) 2026-present MAWESI S.A.S.
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Configuración del tablero: límites WIP, definición de terminado y colores de tarjeta (solo web)."""
+"""Configuración del tablero: límites WIP, definición de terminado y colores de tarjeta."""
 from rest_framework import status
 from rest_framework.response import Response
 

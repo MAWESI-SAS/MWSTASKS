@@ -1,6 +1,6 @@
 # Copyright (c) 2026-present MAWESI S.A.S.
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Repositorios que MWSTASKS lee (admins del workspace) y enlaces de código de cada tarea (solo web)."""
+"""Repositorios que MWSTASKS lee (admins del workspace) y enlaces de código de cada tarea."""
 import os
 
 from django.db import IntegrityError, transaction

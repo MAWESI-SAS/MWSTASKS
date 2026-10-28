@@ -57,9 +57,15 @@ Detalles de las APIs más abajo.
 
 AGPL-3.0-only, igual que Plane. Ver [`LICENSE`](LICENSE) y [`NOTICE.md`](NOTICE.md).
 "Plane" es una marca de Plane Software, Inc.; este proyecto no está afiliado a Plane Software, Inc.
+## API completa con token personal
+
+Todo lo que hace la web se puede hacer por API con un token personal (Perfil → Personal Access Tokens), con los
+permisos de su dueño. Guía con ejemplos: [`docs/API.md`](docs/API.md). Referencia (OpenAPI, 665 operaciones):
+`/api/mawesi/docs/` (con sesión) y `/api/mawesi/docs/schema/?format=json`.
+
 ## API de horas (worklogs)
 
-Web (cookie de sesión): prefijo `/api/mawesi/`. Pública (`X-Api-Key`): prefijo `/api/v1/mawesi/`.
+Prefijos `/api/mawesi/` (la usa la web) y `/api/v1/mawesi/` (copia por compatibilidad). Los dos aceptan sesión y `X-Api-Key`.
 
 | Método y ruta | Qué hace | Quién |
 |---|---|---|
@@ -115,7 +121,7 @@ Relaciones de la tarea: "Bloqueada por / Bloqueando" (terminar para empezar), "E
 proyecto → Tablero → Dependencias (todo prendido por defecto):
 
 - **Frenar:** una tarea no pasa a "en curso" ni a "terminada" mientras lo que espera siga abierto (web y API; responde
-  409 con el motivo). No frena a las integraciones de un admin del workspace con API key (la copia desde ClickUp).
+  409 con el motivo). No frena a las integraciones de un admin del workspace con API key por `/api/v1/` (la copia desde ClickUp); por `/api/…` el token se trata como la web.
 - **Soltar al desbloquearse:** al resolverse lo último que esperaba, queda en el historial y, si estaba en "Blocked",
   pasa a la primera columna por hacer (con el aviso de Plane).
 - **Correr fechas:** si una tarea se atrasa, sus dependientes se corren lo justo para no chocar (todas sus predecesoras

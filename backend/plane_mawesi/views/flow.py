@@ -1,6 +1,6 @@
 # Copyright (c) 2026-present MAWESI S.A.S.
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Flujo acumulado, lead/cycle time, rendimiento y envejecimiento de un proyecto (solo web)."""
+"""Flujo acumulado, lead/cycle time, rendimiento y envejecimiento de un proyecto."""
 import uuid
 
 from django.utils import timezone

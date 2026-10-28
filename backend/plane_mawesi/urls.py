@@ -5,8 +5,10 @@ from django.urls import path
 
 from plane.urls import urlpatterns as plane_urlpatterns
 
+from plane_mawesi import tokens
 from plane_mawesi.auth import views as auth
 from plane_mawesi.views import analytics as an
+from plane_mawesi.views import apidocs
 from plane_mawesi.views import automations as au
 from plane_mawesi.views import board as bd
 from plane_mawesi.views import capacity as cp
@@ -77,10 +79,14 @@ ANALYTICS = [
          an.ProjectCompletionChartEndpoint.as_view(), name="project-advance-analytics-chart"),
 ]
 
-urlpatterns = [
+# Todas las rutas de la web aceptan también el token personal, con los permisos de su dueño (ver tokens.py).
+urlpatterns = tokens.with_tokens([
     *GUARDED,
     *ANALYTICS,
     path("api/mawesi/ping/", w.PingEndpoint.as_view(), name="mawesi-ping"),
+    # Documentación de toda la API (OpenAPI): página para el navegador y el schema en JSON o YAML (ver plane_mawesi/apidocs.py).
+    path("api/mawesi/docs/", apidocs.ApiDocsEndpoint.as_view(), name="mawesi-api-docs"),
+    path("api/mawesi/docs/schema/", apidocs.ApiSchemaEndpoint.as_view(), name="mawesi-api-schema"),
     # Login con Microsoft (Plane CE no lo trae). Mismo prefijo /auth/ que los logins de Plane.
     path("auth/microsoft/", auth.MicrosoftInitiateEndpoint.as_view(), name="mawesi-microsoft-initiate"),
     path("auth/microsoft/callback/", auth.MicrosoftCallbackEndpoint.as_view(), name="mawesi-microsoft-callback"),
@@ -89,16 +95,16 @@ urlpatterns = [
     *_routes("api/v1/mawesi/", w.IssueWorklogsKeyEndpoint, w.WorklogDetailKeyEndpoint, w.WorklogTotalsKeyEndpoint, w.WorklogReportKeyEndpoint, w.WorklogSummaryKeyEndpoint, "-key"),
     path(f"api/mawesi/{PROJECT}/table/", tb.ProjectTableEndpoint.as_view(), name="mawesi-table"),
     path("api/mawesi/workspaces/<str:slug>/wiki/", wk.WikiEndpoint.as_view(), name="mawesi-wiki"),
-    # SLA: plazo por prioridad en horas hábiles y tiempo en cada estado (solo web).
+    # SLA: plazo por prioridad en horas hábiles y tiempo en cada estado.
     path(f"api/mawesi/{PROJECT}/sla/", sl.SlaPolicyEndpoint.as_view(), name="mawesi-sla-policy"),
     path(f"api/mawesi/{PROJECT}/sla/issues/", sl.SlaBatchEndpoint.as_view(), name="mawesi-sla-batch"),
     path(f"api/mawesi/{ISSUE}/sla/", sl.IssueSlaEndpoint.as_view(), name="mawesi-sla-issue"),
-    # Plantillas de tarea (solo web).
+    # Plantillas de tarea.
     path(f"api/mawesi/{PROJECT}/templates/", tp.TemplatesEndpoint.as_view(), name="mawesi-templates"),
     path(f"api/mawesi/{PROJECT}/templates/<uuid:template_id>/", tp.TemplateDetailEndpoint.as_view(), name="mawesi-template"),
     path(f"api/mawesi/{PROJECT}/templates/<uuid:template_id>/apply/", tp.ApplyTemplateEndpoint.as_view(), name="mawesi-template-apply"),
     path(f"api/mawesi/{ISSUE}/recurrence/", rc.IssueRecurrenceEndpoint.as_view(), name="mawesi-recurrence"),
-    # Reglas automáticas (solo web).
+    # Reglas automáticas.
     path(f"api/mawesi/{PROJECT}/automations/", au.AutomationsEndpoint.as_view(), name="mawesi-automations"),
     path(f"api/mawesi/{PROJECT}/automations/<uuid:rule_id>/", au.AutomationDetailEndpoint.as_view(), name="mawesi-automation"),
     # Estimado y restante en horas (web y API key: los empleados AI también estiman).
@@ -116,23 +122,23 @@ urlpatterns = [
     # Último comentario por tarea, en lote (Hub: resumen del informe de mejoras).
     path(f"api/mawesi/{PROJECT}/last-comments/", cm.LastCommentsEndpoint.as_view(), name="mawesi-last-comments"),
     path(f"api/v1/mawesi/{PROJECT}/last-comments/", cm.LastCommentsKeyEndpoint.as_view(), name="mawesi-last-comments-key"),
-    # Dependencias: bloqueos y fechas que chocan, para las tarjetas (solo web).
+    # Dependencias: bloqueos y fechas que chocan, para las tarjetas.
     path(f"api/mawesi/{PROJECT}/dependencies/", dp.DependencyStatusEndpoint.as_view(), name="mawesi-dependencies"),
-    # Tablero: límites WIP, definición de terminado y colores de tarjeta (solo web).
+    # Tablero: límites WIP, definición de terminado y colores de tarjeta.
     path(f"api/mawesi/{PROJECT}/board/", bd.BoardConfigEndpoint.as_view(), name="mawesi-board"),
-    # Capacidad por ciclo y analítica de flujo (solo web).
+    # Capacidad por ciclo y analítica de flujo.
     path(f"api/mawesi/{PROJECT}/capacity/cycles/", cp.CycleListEndpoint.as_view(), name="mawesi-capacity-cycles"),
     path(f"api/mawesi/{PROJECT}/cycles/<uuid:cycle_id>/capacity/", cp.CycleCapacityEndpoint.as_view(), name="mawesi-capacity"),
     path(f"api/mawesi/{PROJECT}/flow/", fl.ProjectFlowEndpoint.as_view(), name="mawesi-flow"),
-    # Enlace con el código: repositorios del workspace y commits/PRs de cada tarea (solo web).
+    # Enlace con el código: repositorios del workspace y commits/PRs de cada tarea.
     path("api/mawesi/workspaces/<str:slug>/favicon/", fv.FaviconEndpoint.as_view(), name="mawesi-favicon"),
     path("api/mawesi/workspaces/<str:slug>/code-repos/", cd.CodeReposEndpoint.as_view(), name="mawesi-code-repos"),
     path("api/mawesi/workspaces/<str:slug>/code-repos/<uuid:repo_id>/", cd.CodeRepoDetailEndpoint.as_view(), name="mawesi-code-repo"),
     path("api/mawesi/workspaces/<str:slug>/code-repos/<uuid:repo_id>/sync/", cd.CodeRepoSyncEndpoint.as_view(), name="mawesi-code-repo-sync"),
     path(f"api/mawesi/{ISSUE}/code-links/", cd.IssueCodeLinksEndpoint.as_view(), name="mawesi-code-links"),
-    # Logo del proyecto con imagen propia (solo web).
+    # Logo del proyecto con imagen propia.
     path(f"api/mawesi/{PROJECT}/logo/", pl.ProjectLogoEndpoint.as_view(), name="mawesi-project-logo"),
-    # Cronómetro: solo la web (lo usa una persona desde el navegador).
+    # Cronómetro.
     path("api/mawesi/workspaces/<str:slug>/timer/", tm.CurrentTimerEndpoint.as_view(), name="mawesi-timer"),
     path("api/mawesi/workspaces/<str:slug>/timer/stop/", tm.StopTimerEndpoint.as_view(), name="mawesi-timer-stop"),
     path(f"api/mawesi/{ISSUE}/timer/start/", tm.StartTimerEndpoint.as_view(), name="mawesi-timer-start"),
@@ -141,4 +147,4 @@ urlpatterns = [
     path("api/v1/mawesi/workspaces/<str:slug>/relations/", rl.RelationsBatchKeyEndpoint.as_view(), name="mawesi-relations-key"),
     *_property_routes("api/v1/mawesi/", pr.PropertiesKeyEndpoint, pr.PropertyDetailKeyEndpoint, pr.IssueValuesKeyEndpoint, pr.ValuesBatchKeyEndpoint, "-key"),
     *plane_urlpatterns,
-]
+])

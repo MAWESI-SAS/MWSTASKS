@@ -1,6 +1,6 @@
 # Copyright (c) 2026-present MAWESI S.A.S.
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Capacidad por ciclo (solo web)."""
+"""Capacidad por ciclo."""
 from rest_framework import status
 from rest_framework.response import Response
 
