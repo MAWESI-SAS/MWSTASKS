@@ -61,6 +61,11 @@ class TestDocumentacion:
         types = schema["paths"]["/api/mawesi/workspaces/{slug}/projects/{project_id}/types/"]["post"]
         assert types["summary"] == "Crear un tipo"
         assert types["requestBody"]["content"]["application/json"]["example"]["color"] == "red"
+        # El cuerpo dice sus campos (no "objeto libre"): sin eso, generar herramientas desde el schema no sabe qué ofrecer.
+        body = types["requestBody"]["content"]["application/json"]["schema"]
+        assert body["properties"]["color"] == {"type": "string"} and body["properties"]["property_ids"]["type"] == "array"
+        values = schema["paths"]["/api/mawesi/workspaces/{slug}/projects/{project_id}/issues/{issue_id}/property-values/"]["patch"]
+        assert "additionalProperties" in values["requestBody"]["content"]["application/json"]["schema"]["properties"]["values"]
 
     def test_resumenes_de_plane_en_rutas_que_existen(self, schema):
         have = {(m.upper(), p) for m, p, _ in ops(schema)}

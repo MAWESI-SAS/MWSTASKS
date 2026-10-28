@@ -141,6 +141,30 @@ def _summary(method, path):
     return f"{verb}: {last.replace('-', ' ')}"
 
 
+UUID_KEY = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+
+def schema_of(example):
+    """Schema OpenAPI de un ejemplo, campo por campo. Sin él, un cuerpo es "objeto libre" y quien genera herramientas
+    desde el schema (la fábrica de paquetes de AI_EMPLOYEES) no sabe qué campos ofrecer. Un objeto con ids como claves
+    (`{"values": {property_id: valor}}`) es un mapa: `additionalProperties`."""
+    if isinstance(example, dict):
+        if example and all(UUID_KEY.match(str(k)) for k in example):
+            return {"type": "object", "additionalProperties": schema_of(next(iter(example.values())))}
+        return {"type": "object", "properties": {k: schema_of(v) for k, v in example.items()}}
+    if isinstance(example, list):
+        return {"type": "array", "items": schema_of(example[0]) if example else {"type": "string"}}
+    if isinstance(example, bool):
+        return {"type": "boolean"}
+    if isinstance(example, int):
+        return {"type": "integer"}
+    if isinstance(example, float):
+        return {"type": "number"}
+    if example is None:
+        return {"type": "string", "nullable": True}
+    return {"type": "string"}
+
+
 def _apply_catalog(op, entry):
     op["summary"] = entry["summary"]
     op["description"] = entry["description"]
@@ -148,7 +172,7 @@ def _apply_catalog(op, entry):
     op["parameters"] = params + [{"in": "query", "name": n, "description": d, "required": r, "schema": {"type": "string"}}
                                  for n, d, r in entry["query"]]
     if entry["body"] is not None:
-        op["requestBody"] = {"content": {"application/json": {"schema": {"type": "object"}, "example": entry["body"]}}}
+        op["requestBody"] = {"content": {"application/json": {"schema": schema_of(entry["body"]), "example": entry["body"]}}}
     code = str(entry["status"])
     resp = {"description": "OK"}
     if entry["resp"] is not None:
@@ -172,8 +196,10 @@ def postprocess(result, generator, request, public):
                 op["description"] = "\n\n".join(x for x in (plane_entry["description"], op.get("description", "")) if x)
                 if plane_entry["body"] is not None:
                     content = op.setdefault("requestBody", {}).setdefault("content", {})
-                    content.setdefault("application/json", {}).setdefault("schema", {"type": "object"})
-                    content["application/json"]["example"] = plane_entry["body"]
+                    js = content.setdefault("application/json", {})
+                    if not (js.get("schema") or {}).get("properties") and "$ref" not in (js.get("schema") or {}):
+                        js["schema"] = schema_of(plane_entry["body"])  # Plane no declaró su serializer
+                    js["example"] = plane_entry["body"]
             elif not op.get("summary"):
                 op["summary"] = _summary(method, path)
             notes = [f"**Familia:** {family}"]

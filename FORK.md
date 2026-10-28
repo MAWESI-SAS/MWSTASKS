@@ -160,6 +160,11 @@ vuelve a crear con `as_view(**initkwargs)` cada vista de `/api/…` y `/api/mawe
 `BaseSessionAuthentication`. El control de dependencias trata un PATCH con token por `/api/…` como la web (solo
 `/api/v1/` deja pasar a un admin con token). Contrato: `test_tokens.py::test_contrato_rutas_de_la_web_con_token`.
 
+Rutas sin barra final (`slashes.py`, `SlashlessApiMiddleware`, insertado justo antes de `django.middleware.common.CommonMiddleware`
+en `MIDDLEWARE`): en `/api/…`, si la ruta sin `/` no existe y con `/` sí, se atiende con `/` sin el 301 de APPEND_SLASH (la
+fábrica de paquetes de AI_EMPLOYEES arma las rutas sin la barra y no sigue redirecciones con el token). Lo que niega el
+token (`tokens.DENIED`) mira la ruta ya con la barra. Prueba: `test_slashes.py`.
+
 Documentación de la API (`apidocs.py`, `views/apidocs.py`): drf-spectacular de la imagen de Plane (Plane lo apaga con
 `ENABLE_DRF_SPECTACULAR`; nosotros lo sumamos a `INSTALLED_APPS` y usamos settings propios). "Quién" sale del decorador
 `allow_permission` de Plane leyendo su closure (`allowed_roles`, `level`, `creator`, `model`) y de los nombres de sus

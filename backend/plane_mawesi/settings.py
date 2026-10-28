@@ -30,5 +30,8 @@ if "drf_spectacular" not in INSTALLED_APPS:
     INSTALLED_APPS.append("drf_spectacular")
 # Headers del límite del token también en las rutas de la web (ver tokens.py).
 MIDDLEWARE = [*MIDDLEWARE, "plane_mawesi.tokens.RateLimitHeadersMiddleware"]  # noqa: F405
+# Rutas de la API sin la barra final, sin redirigir (ver slashes.py): antes de CommonMiddleware (APPEND_SLASH).
+_common = MIDDLEWARE.index("django.middleware.common.CommonMiddleware")
+MIDDLEWARE = [*MIDDLEWARE[:_common], "plane_mawesi.slashes.SlashlessApiMiddleware", *MIDDLEWARE[_common:]]
 REST_FRAMEWORK = {**REST_FRAMEWORK, "DEFAULT_SCHEMA_CLASS": "plane_mawesi.apidocs.SafeAutoSchema"}  # noqa: F405
 from plane_mawesi.apidocs_settings import SPECTACULAR_SETTINGS  # noqa: E402,F401
