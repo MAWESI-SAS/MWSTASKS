@@ -72,10 +72,10 @@ jobs:
     name: CLI mws (servidor falso)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # La versión mínima que soporta el CLI; setup-python ya no la trae en el runner.
+    container: python:3.9-slim
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.9" }
       - name: pytest
         run: |
           pip install pytest
