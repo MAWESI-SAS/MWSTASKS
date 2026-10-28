@@ -49,6 +49,20 @@ export const registerWikiNav = () => {
   });
 };
 
+export const MAWESI_WORKLOAD_KEY = "mawesi_workload";
+
+/** "Carga de trabajo" (la vista Workload de ClickUp): horas por persona y día de todos los proyectos. */
+export const registerWorkloadNav = () => {
+  if (WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS.some((i) => i.key === MAWESI_WORKLOAD_KEY)) return;
+  WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS.push({
+    key: MAWESI_WORKLOAD_KEY,
+    labelTranslationKey: "Carga de trabajo",
+    href: "/mawesi/carga/",
+    access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER],
+    highlight: (pathname: string, url: string) => pathname.includes(url),
+  });
+};
+
 export const MAWESI_FIELDS_KEY = "mawesi_fields";
 export const MAWESI_TYPES_KEY = "mawesi_types";
 export const MAWESI_SLA_KEY = "mawesi_sla";

@@ -28,6 +28,7 @@ from plane_mawesi.views import templates as tp
 from plane_mawesi.views import timers as tm
 from plane_mawesi.views import types as ty
 from plane_mawesi.views import wiki as wk
+from plane_mawesi.views import workload as wl
 from plane_mawesi.views import worklogs as w
 
 handler404 = "plane.app.views.error_404.custom_404_view"
@@ -95,6 +96,9 @@ urlpatterns = tokens.with_tokens([
     *_routes("api/v1/mawesi/", w.IssueWorklogsKeyEndpoint, w.WorklogDetailKeyEndpoint, w.WorklogTotalsKeyEndpoint, w.WorklogReportKeyEndpoint, w.WorklogSummaryKeyEndpoint, "-key"),
     path(f"api/mawesi/{PROJECT}/table/", tb.ProjectTableEndpoint.as_view(), name="mawesi-table"),
     path("api/mawesi/workspaces/<str:slug>/wiki/", wk.WikiEndpoint.as_view(), name="mawesi-wiki"),
+    # Carga de trabajo por persona y día, de todos los proyectos (la vista Workload de ClickUp).
+    path("api/mawesi/workspaces/<str:slug>/workload/", wl.WorkloadEndpoint.as_view(), name="mawesi-workload"),
+    path("api/mawesi/workspaces/<str:slug>/workload/capacity/", wl.WorkloadCapacityEndpoint.as_view(), name="mawesi-workload-capacity"),
     # SLA: plazo por prioridad en horas hábiles y tiempo en cada estado.
     path(f"api/mawesi/{PROJECT}/sla/", sl.SlaPolicyEndpoint.as_view(), name="mawesi-sla-policy"),
     path(f"api/mawesi/{PROJECT}/sla/issues/", sl.SlaBatchEndpoint.as_view(), name="mawesi-sla-batch"),

@@ -3,6 +3,8 @@
 Gestor de tareas de MAWESI basado en **[Plane](https://github.com/makeplane/plane) Community Edition** (AGPL-3.0), con:
 
 - **Registro de horas** por tarea (detalle y vista rápida), historial y **reporte** con filtros y CSV.
+- **Carga de trabajo** por persona y día (como la vista Workload de ClickUp): horas estimadas contra la capacidad de
+  cada uno, de todos los proyectos, con detalle por celda y lo sin programar.
 - **Campos propios** por proyecto: texto, URL, número, fecha, sí/no, selección única y múltiple, persona.
   Los links se ven como en ClickUp: ícono del sitio + nombre (el servidor busca el favicon, sin servicios de terceros).
   Los nombres largos ocupan una línea y se cortan con "…"; el nombre completo y la descripción salen al pasar el mouse.

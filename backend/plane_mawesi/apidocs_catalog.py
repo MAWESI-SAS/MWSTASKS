@@ -222,6 +222,24 @@ CATALOG = {
     ("GET", P + "table/"): op("Vista Tabla", "Tareas abiertas con horas y campos propios como columnas (hasta 3.000).",
                               MEMBERS, query=[("module", "Solo esta lista.", False),
                                               ("closed", "1 = incluir cerradas.", False)]),
+    ("GET", W + "workload/"): op(
+        "Carga de trabajo", "Por persona y por día (la vista Workload de ClickUp), de todos los proyectos donde quien llama es "
+        "admin o miembro. El restante de cada tarea abierta se reparte en partes iguales entre los días hábiles de su inicio "
+        "a su vencimiento (con una sola fecha, todo ese día) y entre sus responsables. Capacidad: horas por día de cada "
+        "persona (8 si no se cambió) en días hábiles (lunes a viernes sin festivos de Colombia). `backlog`: sin fechas, "
+        "vencidas y sin estimado. Sin `from`/`to`: dos semanas desde el lunes.", MEMBERS,
+        query=[("from", "Desde (AAAA-MM-DD).", False), ("to", "Hasta (AAAA-MM-DD), hasta 93 días.", False),
+               ("project", "Solo estos proyectos (ids separados por coma).", False), ("module", "Solo esta lista.", False)],
+        resp={"from": "2026-10-26", "to": "2026-11-08", "days": [{"date": "2026-10-26", "workday": True}],
+              "rows": [{"member_id": UUID, "display_name": "ana", "hours_per_day": 8.0,
+                        "minutes": {"2026-10-26": 300.0}, "tasks": {"2026-10-26": 2},
+                        "capacity": {"2026-10-26": 480.0}, "total_minutes": 300.0, "capacity_minutes": 4800.0,
+                        "items": [{"key": "TQ-120", "name": "Informe", "share_minutes": 600.0,
+                                   "days": {"2026-10-26": 300.0, "2026-10-27": 300.0}}],
+                        "backlog": {"undated_count": 3, "overdue_count": 1, "unestimated": 2}}]}),
+    ("PUT", W + "workload/capacity/"): op("Horas por día de una persona", "Para la Carga de trabajo: de 0 a 24.",
+                                          "Solo admins del workspace.", body={"member_id": UUID, "hours_per_day": 6},
+                                          resp={"member_id": UUID, "hours_per_day": 6.0}),
     ("GET", W + "wiki/"): op("Buscar en la Wiki", "Páginas de todos los proyectos de quien llama. Ignora tildes.",
                              MEMBERS, query=[("q", "Texto a buscar.", False)]),
     ("GET", W + "favicon/"): op("Ícono de un sitio", "Ícono (favicon) del sitio de un link.", "Cualquier usuario.",

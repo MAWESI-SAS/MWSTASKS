@@ -10,10 +10,11 @@ import "./theme/shell.css";
 import "./folders/tree.css";
 import "./board/card-style.css";
 import { registerDependencies } from "./dependencies/register";
-import { registerNav, registerProjectSettings, registerWikiNav, registerWorkspaceSettings } from "./nav";
+import { registerNav, registerProjectSettings, registerWikiNav, registerWorkloadNav, registerWorkspaceSettings } from "./nav";
 
 registerNav();
 registerWikiNav();
+registerWorkloadNav();
 registerProjectSettings();
 registerWorkspaceSettings();
 // Fuera de React no hay idioma de Plane: el título sigue al navegador; el motivo viene del servidor.

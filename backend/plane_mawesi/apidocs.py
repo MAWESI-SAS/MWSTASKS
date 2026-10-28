@@ -32,7 +32,7 @@ TAGS = [
     (r"/sla/", "SLA"), (r"/templates/", "Plantillas"), (r"/recurrence/", "Repetición"),
     (r"/automations/", "Reglas automáticas"), (r"/board/|/dependencies/", "Tablero y dependencias"),
     (r"/capacity/", "Capacidad"), (r"/flow/|analytic|/dashboard", "Analítica"), (r"/code-", "Código (commits y PRs)"),
-    (r"/table/", "Vista Tabla"), (r"/wiki/|/pages", "Páginas y Wiki"),
+    (r"/workload/", "Carga de trabajo"), (r"/table/", "Vista Tabla"), (r"/wiki/|/pages", "Páginas y Wiki"),
     (r"comment", "Comentarios"), (r"reaction", "Reacciones"), (r"attachment|/assets/|file-assets", "Archivos"),
     (r"issue-links|/links/", "Enlaces de tareas"), (r"relation", "Relaciones"), (r"sub-issues", "Subtareas"),
     (r"activit|histor", "Historial"), (r"/cycles", "Ciclos"), (r"/modules", "Listas (módulos)"),

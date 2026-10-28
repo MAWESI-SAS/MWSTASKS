@@ -25,7 +25,7 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
 | `components/issues/peek-overview/properties` | `overrides/issues/peek-overview-properties.tsx`: propiedades de Plane + panel de horas |
 | `components/issues/issue-detail/sidebar` | `overrides/issues/issue-detail-sidebar.tsx`: columna flex, Plane arriba con su scroll y el panel de horas abajo (Plane usa `h-full`; un hermano quedaba fuera de vista) |
 | `components/issues/issue-detail/issue-activity/activity/activity-list` | `overrides/issues/activity-list.tsx`: pinta `field="worklog"`; el resto lo pinta Plane (que devuelve `null` para campos desconocidos) |
-| `components/workspace/sidebar/helper` | `overrides/workspace/sidebar-helper.tsx`: ícono de reloj para el ítem `mawesi_worklogs`; re-exporta todo lo demás |
+| `components/workspace/sidebar/helper` | `overrides/workspace/sidebar-helper.tsx`: íconos de los ítems `mawesi_worklogs` (reloj), `mawesi_wiki` (libro) y `mawesi_workload` (personas); re-exporta todo lo demás |
 | `components/navigation/top-navigation-root` | `overrides/navigation/top-navigation-root.tsx`: envuelve la barra superior en `.mawesi-topbar` (`display: contents`, sin cambiar el layout) para pintarla en blanco sobre el gradiente |
 | `components/workspace/sidebar/project-navigation` | `overrides/workspace/project-navigation.tsx`: pasa la prop `additionalNavigationItems` (existe en Plane, CE no la usa) con el ítem "Tabla" y dibuja debajo el árbol "Carpeta > Lista" (`folders/module-tree.tsx`), armado con los módulos `"Carpeta / Lista"`. Solo en el modo de menú "acordeón" (el de por defecto). El árbol es la única forma de ordenar listas: menús "⋯" para crear/renombrar/mover/borrar (`folders/tree-dialog.tsx`; mismos permisos que la API de módulos: crear/editar admin y miembro, borrar admin o creador) y el ítem "Módulos" de Plane se oculta con CSS (`folders/tree.css`, dentro de `[data-mawesi=project-nav]`) porque Plane lo arma en `baseNavigation` sin prop para quitarlo. Respeta el interruptor `module_view` del proyecto |
 | `components/issues/issue-layouts/properties/all-properties` | `overrides/issues/all-properties.tsx`: chip de horas al final de las propiedades de la tarjeta (tablero y lista). El contenedor de Plane queda en `contents` para compartir el flex. Los totales se piden en lote por proyecto (`worklog/totals.ts`). Pasa a Plane `displayProperties` apagando las propiedades sin valor (prioridad, fechas, responsables, etiquetas, estimado, lista, ciclo) y la lista/ciclo de la ruta actual, como Linear; el estado se apaga solo cuando la vista está agrupada por estado (lee `group_by` de `useIssues(useIssueStoreType()).issuesFilter`) |
@@ -54,6 +54,12 @@ Tabla viva: `web/ext/replacements.ts`. Guardias en `web/vite.ext.config.ts`:
   (`PROJECT_LAYOUT`), así `ProjectAuthWrapper` controla el acceso y carga estados y módulos.
 - El aviso del cronómetro (`worklog/running-timer.tsx`) se monta en el envoltorio de `top-navigation-root`, fuera de
   `.mawesi-topbar` (que pinta todo en blanco).
+- Carga de trabajo: `:workspaceSlug/mawesi/carga` (misma cadena de layouts que Horas) + ítem en
+  `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (`registerWorkloadNav`). API `GET /api/mawesi/workspaces/<slug>/workload/`
+  y `PUT …/workload/capacity/` (`workload.py`): la vista Workload de ClickUp. Restante de las tareas abiertas repartido en
+  partes iguales entre los días hábiles de su inicio a su vencimiento (calendario del SLA) y entre sus responsables;
+  capacidad por persona en `mawesi_workload_capacities` (migración `0011`, 8 h si no hay fila); "Sin programar" = sin
+  fechas, vencidas, sin estimado.
 - Wiki: `:workspaceSlug/mawesi/wiki` (misma cadena de layouts que Horas) + ítem "Wiki" en
   `WORKSPACE_SIDEBAR_DYNAMIC_NAVIGATION_ITEMS_LINKS` (`registerWikiNav`; si no está fijado, Plane lo pone en "More").
   API `GET /api/mawesi/workspaces/<slug>/wiki/?q=` (`views/wiki.py`): Páginas de los proyectos donde la persona es

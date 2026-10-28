@@ -423,3 +423,17 @@ class ModuleType(ProjectBaseModel):
         constraints = [
             models.UniqueConstraint(fields=["module"], condition=models.Q(deleted_at__isnull=True), name="mawesi_module_type_one_per_module"),
         ]
+
+
+class WorkloadCapacity(WorkspaceBaseModel):
+    """Horas por día que trabaja una persona, para la Carga de trabajo (capacidad de la vista Workload de ClickUp). Sin
+    fila: 8 horas. Vale para todos sus proyectos; los días hábiles son los del calendario del SLA."""
+
+    member = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mawesi_workload_capacities")
+    hours_per_day = models.DecimalField(max_digits=4, decimal_places=2, default=8)
+
+    class Meta:
+        db_table = "mawesi_workload_capacities"
+        constraints = [
+            models.UniqueConstraint(fields=["workspace", "member"], condition=models.Q(deleted_at__isnull=True), name="mawesi_workload_capacity_unique"),
+        ]
