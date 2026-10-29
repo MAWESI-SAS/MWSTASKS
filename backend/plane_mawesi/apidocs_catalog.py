@@ -103,7 +103,8 @@ CATALOG = {
                                         resp={UUID: UUID2}),
     ("PATCH", I + "property-values/"): op("Cambiar valores de una tarea", "`null` borra el valor. Deja historial.",
                                           MEMBERS, body={"values": {UUID: UUID2, UUID2: None}}, resp={UUID: UUID2}),
-    ("GET", P + "property-values/"): op("Valores de varias tareas", "`{issue_id: {property_id: valor legible}}`.",
+    ("GET", P + "property-values/"): op("Valores de varias tareas", "`{issue_id: {property_id: valor}}`, con el mismo "
+                                        "formato que los valores de una tarea (selección: id de la opción). Sin opciones borradas.",
                                         MEMBERS, query=[IDS]),
     # Tipos de tarea
     ("GET", P + "types/"): op("Tipos de tarea", "Cada tipo muestra solo sus campos. Una lista usa un solo tipo.",
