@@ -86,6 +86,13 @@ def report(user, slug, start: dt.date, end: dt.date, today: dt.date, project_ids
     assignees = defaultdict(list)
     for iid, uid in IssueAssignee.objects.filter(issue_id__in=ids, deleted_at__isnull=True, assignee__is_bot=False).values_list("issue_id", "assignee_id"):
         assignees[iid].append(str(uid))
+    # Quien ya no está (usuario o miembro del workspace desactivado) no tiene carga: su parte queda "Sin responsable",
+    # a la vista para reasignarla. Pasa con tareas viejas de gente que se fue (vienen así de ClickUp).
+    active = {str(m) for m in WorkspaceMember.objects.filter(
+        workspace__slug=slug, is_active=True, member__is_active=True,
+        member_id__in={u for us in assignees.values() for u in us}).values_list("member_id", flat=True)}
+    for iid in assignees:
+        assignees[iid] = [u for u in assignees[iid] if u in active]
 
     days = [start + dt.timedelta(days=i) for i in range((end - start).days + 1)]
     caps = capacities(slug)

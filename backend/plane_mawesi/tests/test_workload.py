@@ -84,6 +84,23 @@ class TestReparto:
         nadie = next(r for r in data["rows"] if r["member_id"] is None)
         assert nadie["minutes"] == {"2026-11-04": 30.0}
 
+    def test_quien_ya_no_esta_no_aparece_y_su_tarea_queda_sin_responsable(self, session_client, workspace, project,
+                                                                            create_user, member_factory):
+        ido, _ = member_factory("ido@example.com", MEMBER)
+        baja, _ = member_factory("baja@example.com", MEMBER)
+        tarea(project, "Del que se fue", dt.date(2026, 11, 4), dt.date(2026, 11, 4), 60, [ido])
+        tarea(project, "Vieja vencida", dt.date(2025, 11, 1), dt.date(2025, 11, 12), 60, [ido])
+        tarea(project, "Compartida", dt.date(2026, 11, 5), dt.date(2026, 11, 5), 120, [create_user, baja])
+        type(ido).objects.filter(pk=ido.pk).update(is_active=False)  # usuario desactivado
+        WorkspaceMember.objects.filter(workspace=workspace, member=baja).update(is_active=False)  # sacado del workspace
+        data = pedir(session_client, workspace)
+        assert {str(ido.id), str(baja.id)}.isdisjoint({r["member_id"] for r in data["rows"]})
+        nadie = next(r for r in data["rows"] if r["member_id"] is None)
+        assert nadie["minutes"] == {"2026-11-04": 60.0}
+        assert [t["name"] for t in nadie["backlog"]["overdue"]] == ["Vieja vencida"]
+        # La compartida queda entera para quien sigue.
+        assert fila(data, create_user)["minutes"] == {"2026-11-05": 120.0}
+
     def test_solo_tareas_abiertas_y_filtro_por_proyecto(self, session_client, workspace, project, create_user):
         hecho = State.objects.create(name="Hecho", group="completed", project=project, workspace=workspace)
         tarea(project, "Cerrada", dt.date(2026, 11, 4), dt.date(2026, 11, 4), 60, [create_user], state=hecho)
