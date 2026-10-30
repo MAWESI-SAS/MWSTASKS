@@ -9,6 +9,7 @@ from plane_mawesi import tokens
 from plane_mawesi.auth import views as auth
 from plane_mawesi.views import analytics as an
 from plane_mawesi.views import apidocs
+from plane_mawesi.views import attachments as at
 from plane_mawesi.views import automations as au
 from plane_mawesi.views import board as bd
 from plane_mawesi.views import capacity as cp
@@ -150,5 +151,8 @@ urlpatterns = tokens.with_tokens([
     # Relaciones en lote por id externo (migración y copia incremental desde ClickUp).
     path("api/v1/mawesi/workspaces/<str:slug>/relations/", rl.RelationsBatchKeyEndpoint.as_view(), name="mawesi-relations-key"),
     *_property_routes("api/v1/mawesi/", pr.PropertiesKeyEndpoint, pr.PropertyDetailKeyEndpoint, pr.IssueValuesKeyEndpoint, pr.ValuesBatchKeyEndpoint, "-key"),
+    # Borrar archivos de una tarea también como Member (Plane: solo Admin o quien lo subió). Misma ruta que Plane, antes.
+    path(f"api/assets/v2/{ISSUE}/attachments/", at.AttachmentV2Endpoint.as_view(), name="mawesi-issue-attachments-v2"),
+    path(f"api/assets/v2/{ISSUE}/attachments/<uuid:pk>/", at.AttachmentV2Endpoint.as_view(), name="mawesi-issue-attachment-v2"),
     *plane_urlpatterns,
 ])

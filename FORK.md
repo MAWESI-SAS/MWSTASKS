@@ -177,6 +177,13 @@ Documentación de la API (`apidocs.py`, `views/apidocs.py`): drf-spectacular de 
 clases de permiso (`PERMISSION_TEXT`). Mientras se arma el schema se calla el logger `plane.exception` en ese hilo.
 Contrato: `test_apidocs.py` (roles de `bulk-create-labels`, catálogo MAWESI al día).
 
+Borrar archivos de una tarea (`views/attachments.py`): la ruta de la web `DELETE /api/assets/v2/…/attachments/<pk>/` va
+antes que la de Plane con `AttachmentV2Endpoint` (hereda `IssueAttachmentV2Endpoint`) y deja borrar también a un Member
+(Plane: Admin o quien lo subió; los archivos de ClickUp los "subió" la migración). Reusa el borrado de Plane con
+`delete.__wrapped__` (el decorador usa `functools.wraps`): mismo borrado suave e historial; solo cambian los roles. La ruta
+vieja `…/issue-attachments/` (borra del almacenamiento para siempre) queda como en Plane. Contrato:
+`test_attachments.py::test_contrato_borrado_de_archivos_de_plane`.
+
 Historial: escribimos filas `IssueActivity(field="worklog")` directamente. Los guests de un proyecto las verían en el
 historial core (hoy no hay guests).
 
